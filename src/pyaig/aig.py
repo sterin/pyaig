@@ -7,14 +7,22 @@ import itertools
 
 class _Node(object):
     
+    # Node types
+    
     CONST0 = 0
     PI = 1
     LATCH = 2
     AND = 3
     BUFFER = 4
     
-    def __init__(self, type, left=0, right=0):
-        self._type = type
+    # Latch initialization
+    
+    INIT_ZERO = 0
+    INIT_ONE = 1
+    INIT_NONDET = 2
+    
+    def __init__(self, node_type, left=0, right=0):
+        self._type = node_type
         self._left = left
         self._right = right
     
@@ -29,8 +37,8 @@ class _Node(object):
         return _Node( _Node.PI, pi_id, 0)
     
     @staticmethod
-    def make_latch(l_id):
-        return _Node( _Node.LATCH, l_id, 0)
+    def make_latch(l_id, init):
+        return _Node( _Node.LATCH, l_id, init)
     
     @staticmethod
     def make_and(left, right):
@@ -119,16 +127,39 @@ class _Node(object):
     
     # Latches
     
+    def get_init(self):
+        assert self.is_latch()
+        return self._left
+    
     def get_next(self):
         assert self.is_latch()
         return self._right
     
+    def set_init(self, init):
+        assert self.is_latch()
+        self._left = init
+        
     def set_next(self, f):
         assert self.is_latch()
         self._right = f
 
 
 class AIG(object):
+    
+    # PO types
+    
+    OUTPUT = 0
+    BAD_STATES = 1
+    CONSTRAINT = 2
+    JUSTICE = 3
+    FAIRNESS = 4
+
+    # Latch initialization
+    
+    INIT_ZERO = _Node.INIT_ZERO
+    INIT_ONE = _Node.INIT_ONE
+    INIT_NONDET = _Node.INIT_NONDET
+
     def __init__(self, name=None, flat_name = (lambda n: n) ):
         self._name = name
         self._strash = {}
@@ -181,9 +212,9 @@ class AIG(object):
 
         return fn
     
-    def create_latch(self, name=None):
+    def create_latch(self, name=None, init=INIT_ZERO):
         l_id = len(self._latches)
-        n = _Node.make_latch(l_id)
+        n = _Node.make_latch(l_id, init)
         fn = len(self._nodes)<<1
         
         self._nodes.append(n)
@@ -243,9 +274,9 @@ class AIG(object):
         n.convert_buf_to_pi(len(self._pis))
         self._pis.append(buf)
 
-    def create_po(self, f=0, name=None):
+    def create_po(self, f=0, name=None, po_type=OUTPUT ):
         po_id = len(self._pos)
-        self._pos.append(f)
+        self._pos.append( (f, po_type) )
         
         if name is not None:
             self.set_po_name(po_id, name)
@@ -333,12 +364,24 @@ class AIG(object):
 
     # Get/Set next for latches
     
+    def set_init(self, l, init):
+        assert not self.is_negated(l)
+        assert self.is_latch(l)
+        n = self.deref(l)
+        n.set_init(init)
+    
     def set_next(self, l, f):
         assert not self.is_negated(l)
         assert self.is_latch(l)
         n = self.deref(l)
         n.set_next(f)
     
+    def get_init(self, l):
+        assert not self.is_negated(l)
+        assert self.is_latch(l)
+        n = self.deref(l)
+        return n.get_init()
+
     def get_next(self, l):
         assert not self.is_negated(l)
         assert self.is_latch(l)
@@ -395,14 +438,22 @@ class AIG(object):
         return (self.get_positive(fi) for fi in n.get_seq_fanins())
     
     # PO fanins
+
+    def get_po_type(self, po):
+        assert 0 <= po < len(self._pos)
+        return self._pos[po][1]
     
     def get_po_fanin(self, po):
         assert 0 <= po < len(self._pos)
-        return self._pos[po]
+        return self._pos[po][0]
     
     def set_po_fanin(self, po, f):
         assert 0 <= po < len(self._pos)
-        self._pos[po] = f 
+        self._pos[po][0] = f 
+    
+    def set_po_type(self, po, po_type):
+        assert 0 <= po < len(self._pos)
+        self._pos[po][1] = po_type
     
     # Negation
     
@@ -495,6 +546,9 @@ class AIG(object):
     def get_pos(self):
         return ( po for po in self._pos )
             
+    def get_po_fanins(self):
+        return ( po[0] for po in self._pos )
+            
     def get_nonterminals(self):
         return ( i<<1 for i,n in enumerate(self._nodes) if n.is_nonterminal() )
             
@@ -548,7 +602,7 @@ class AIG(object):
                     aig.set_name( af, self.get_name_by_id(f) )
             visited[f] = af
 
-        cone = self.get_seq_cone( self.get_pos() )        
+        cone = self.get_seq_cone( self.get_po_fanins() )        
 
         for f in self.topological_order():
             
@@ -564,16 +618,16 @@ class AIG(object):
                 visit( f, aig.create_and( map(n.get_left()), map(n.get_right()) ) )
                 
             elif n.is_latch():
-                l = aig.create_latch()
+                l = aig.create_latch(n.get_init())
                 l.set_next( map( n.get_next() ) )
                 visit( f, l )
                 
             elif n.is_buffer():
                 visit( f, map( n.get_buf_in()) )
                 
-        for po_id, po_f in enumerate( self.get_pos() ):
+        for po_id, po_f in enumerate( self.get_po_fanins() ):
             
-            po = aig.create_po( map(po_f), self.get_name_by_po(po_id) if self.po_has_name(po_id) else None )
+            po = aig.create_po( map(po_f), self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=aig.get_po_type(po_id) )
                 
         return aig
 

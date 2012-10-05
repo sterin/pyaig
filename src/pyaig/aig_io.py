@@ -8,9 +8,13 @@ import subprocess
 
 from aig import AIG
 
+AIGER_VERSION_1_0 = 0
+AIGER_VERSION_1_9 = 1
+
 class _aiger_writer(object):
     
     def __init__(self, fout, I, L, O, A):
+        
         M = I+L+A
         fout.write("aig %d %d %d %d %d\n"%(M,I,L,O,A))
         self._fout = fout
@@ -57,7 +61,6 @@ class _aiger_writer(object):
         
         self._fout.write( chr(x) )
 
-    
 def write_aiger(aig, fout):
     map_aiger = {}
     
@@ -235,12 +238,19 @@ def is_sat(aig):
     fout.close()
 
 def read_aiger(fin):
+    
     aig = AIG()
 
     header = fin.readline().split()
     assert header[0] == 'aig' 
     
-    (M,I,L,O,A) = [ int(t) for t in header[1:] ]
+    args = [ int(t) for t in header[1:] ]
+    (M,I,L,O,A) = args[:5]
+    
+    B = args[5] if len(args)>5 else 0
+    C = args[6] if len(args)>6 else 0
+    J = args[7] if len(args)>7 else 0
+    F = args[8] if len(args)>8 else 0
    
     vars = []
     nexts = []
@@ -251,13 +261,31 @@ def read_aiger(fin):
     for i in xrange(I):
         vars.append( aig.create_pi() )
         
+    def parse_latch(line):
+        
+        tokens = line.strip().split(' ')
+        
+        next = int(tokens[0])
+        init = 0
+        
+        if len(tokens)==2:
+            
+            if tokens[1] == '0':
+                init = AIG.INIT_ZERO
+            if tokens[1] == '1':
+                init = AIG.INIT_ONE
+            else:
+                init = AIG.INIT_NONDET
+                
+        return (next, init)
+        
     for i in xrange(L):
         vars.append( aig.create_latch() )
-        nexts.append( int( fin.readline() ) )
+        nexts.append( parse_latch(fin.readline() ) )
 
-    for i in xrange(O):
+    for i in xrange(O + B + C + J + F):
         pos.append( int( fin.readline() ) )
-    
+        
     def decode():
 
         i = 0
@@ -286,10 +314,23 @@ def read_aiger(fin):
         vars.append( aig.create_and( lit(g-d1), lit(g-d1-d2) ) )
                      
     for l, v in enumerate(xrange(I+1,I+L+1)):
-        aig.set_next( vars[v], lit(nexts[l]) )
+        aig.set_init( vars[v], nexts[l][1] )
+        aig.set_next( vars[v], lit(nexts[l][0]) )
         
     for i in xrange(O):
-        aig.create_po( lit(pos[i]) )
+        aig.create_po( lit(pos[i]), po_type=AIG.OUTPUT )
+        
+    for i in xrange(B):
+        aig.create_po( lit(pos[i]), po_type=AIG.BAD_STATES )
+        
+    for i in xrange(C):
+        aig.create_po( lit(pos[i]), po_type=AIG.CONSTRAINT )
+        
+    for i in xrange(J):
+        aig.create_po( lit(pos[i]), po_type=AIG.JUSTICE )
+        
+    for i in xrange(F):
+        aig.create_po( lit(pos[i]), po_type=AIG.FAIRNESS )
         
     for line in fin:
         m = re.match( r'i(\d+) (.*)', line )
