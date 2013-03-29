@@ -13,8 +13,8 @@ class aigexpr(object):
         return aigexpr(aig, aig.create_pi(n))
     
     @staticmethod
-    def create_latch(aig, n=None):
-        return aigexpr(aig, aig.create_latch(name=n))
+    def create_latch(aig, n=None, init=AIG.INIT_ZERO):
+        return aigexpr(aig, aig.create_latch(name=n, init=init))
     
     def __init__(self, aig, f):
         self.aig = aig
@@ -46,7 +46,17 @@ class aigexpr(object):
         assert self.aig == next.aig
         assert self.is_latch()
         self.aig.set_next(self.f, next.get_f())
+        
+    def __getitem__(self, i):
+        assert i==0
+        assert self.is_latch()
+        return aigexpr( self.aig, self.get_next() )
     
+    def __setitem__(self, i, next):
+        assert i==0
+        assert self.is_latch()
+        return self.set_next( next )
+
     def positive_if(self, c):
         return self.negate_if( c^1 )
     
@@ -99,13 +109,37 @@ if __name__=="__main__":
     aig = AIG()
     
     x = aigexpr.create_pi(aig)
-    l = aigexpr.create_latch(aig)
 
+    l = aigexpr.create_latch(aig, init=AIG.INIT_ZERO)
     l.set_next( ~(x^l) )
 
-    aig.create_po( l.get_f() )
+    po = aig.create_po( l.get_f(), po_type=AIG.OUTPUT )
+    aig.set_po_name(po, "OUTPUT")
+    
+    l = aigexpr.create_latch(aig, init=AIG.INIT_ONE)
+    l.set_next( ~(x^l) )
+
+    po = aig.create_po( l.get_f(), po_type=AIG.BAD_STATES )
+    po = aig.set_po_name(po, "BAD_STATES")
+
+    l = aigexpr.create_latch(aig, init=AIG.INIT_NONDET)
+    l.set_next( ~(x^l) )
+
+    po = aig.create_po( l.get_f(), po_type=AIG.CONSTRAINT )
+    aig.set_po_name(po, "CONSTRAINT1")
+
+    po = aig.create_po( l.get_f(), po_type=AIG.CONSTRAINT )
+    aig.set_po_name(po, "CONSTRAINT2")
+    
+    jpos = [ aig.create_po( l.get_f(), "JUSTICE_%d"%i, po_type=AIG.JUSTICE ) for i in xrange(5) ]
+    aig.create_justice( jpos )
+
+    po = aig.create_po( l.get_f(), po_type=AIG.FAIRNESS )
+    aig.set_po_name(po, "FC1")
 
     import aig_io
+
     aig_io.write_aiger(aig, open('test.aig',"w"))
 
-    
+    aig = aig_io.read_aiger( open('test.aig', 'r'))
+    aig_io.write_aiger(aig, open('test.out.aig',"w"))
