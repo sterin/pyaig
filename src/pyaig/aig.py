@@ -143,8 +143,23 @@ class _Node(object):
         assert self.is_latch()
         self._right = (self._right[0], f)
 
-
 class AIG(object):
+
+    # map AIG nodes to AIG nodes, take negation into account
+
+    class map(object):
+        
+        def __init__(self, src, dst):
+            self.m = { src.get_const0():dst.get_const0() }
+            
+        def __getitem__(self, f):
+            return AIG.negate_if_negated( self.m[AIG.get_positive(f)], f )
+            
+        def __setitem__(self, f, g):
+            self.m[ AIG.get_positive(f) ] = AIG.negate_if_negated(g, f)
+        
+        def iteritems(self):
+            return self.m.iteritems()
     
     # PO types
     
@@ -293,6 +308,14 @@ class AIG(object):
         self._justice.append( po_ids )
 
         return j_id
+
+    def remove_justice(self):
+        
+        for po_ids in self._justice:
+            for po_id in po_ids:
+                self.set_po_type(po_id, AIG.OUTPUT)
+        
+        self._justice = []
     
     # Names
     
@@ -571,6 +594,9 @@ class AIG(object):
     
     def topological_order(self):
         return ( i<<1 for i in xrange(1, len(self._nodes) ) )
+        
+    def topological_order_deref(self):
+        return ( (f, self.deref(f)) for f in self.topological_order() )
     
     def get_pis(self):
         return  ( i<<1 for i, n in enumerate(self._nodes) if n.is_pi() )
