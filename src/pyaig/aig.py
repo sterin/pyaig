@@ -38,7 +38,7 @@ class _Node(object):
     
     @staticmethod
     def make_latch(l_id, init):
-        return _Node( _Node.LATCH, l_id, init)
+        return _Node( _Node.LATCH, l_id, (init, None))
     
     @staticmethod
     def make_and(left, right):
@@ -82,7 +82,7 @@ class _Node(object):
         elif self._type == _Node.BUFFER:
             return [self._right]
         elif self._type == _Node.LATCH:
-            return [self._right]
+            return [self._right[1]]
         else:
             return []
     
@@ -129,19 +129,19 @@ class _Node(object):
     
     def get_init(self):
         assert self.is_latch()
-        return self._left
+        return self._right[0]
     
     def get_next(self):
         assert self.is_latch()
-        return self._right
+        return self._right[1]
     
     def set_init(self, init):
         assert self.is_latch()
-        self._left = init
+        self._right = (init, self._right[1])
         
     def set_next(self, f):
         assert self.is_latch()
-        self._right = f
+        self._right = (self._right[0], f)
 
 
 class AIG(object):
@@ -167,6 +167,7 @@ class AIG(object):
         self._latches = []
         self._buffers = []
         self._pos = []
+        self._justice = []
         self._nodes = []
         self._name_to_id = {}
         self._id_to_name = {}
@@ -282,6 +283,16 @@ class AIG(object):
             self.set_po_name(po_id, name)
         
         return po_id
+        
+    def create_justice(self, po_ids):
+        j_id = len(self._justice)
+
+        for po_id in po_ids:
+            assert self.get_po_type(po_id) == AIG.JUSTICE
+
+        self._justice.append( po_ids )
+
+        return j_id
     
     # Names
     
@@ -327,6 +338,12 @@ class AIG(object):
     
     def po_has_name(self, po):
         return po in self._po_to_name
+
+    def remove_po_name(self, po):
+        assert self.po_has_name(po)
+        name = self.get_name_by_po(po)
+        del self._name_to_po[name]
+        del self._po_to_name[po]
     
     def get_name_by_po(self, po):
         return self._po_to_name[po]
@@ -449,11 +466,23 @@ class AIG(object):
     
     def set_po_fanin(self, po, f):
         assert 0 <= po < len(self._pos)
-        self._pos[po][0] = f 
+        self._pos[po][0] = ( f, self._pos[po][1] ) 
     
     def set_po_type(self, po, po_type):
         assert 0 <= po < len(self._pos)
-        self._pos[po][1] = po_type
+        self._pos[po] = ( self._pos[po][0], po_type )
+    
+    # Justice
+    
+    def get_justice_pos(self, j_id):
+        assert 0 <= j_id < len(self._justice)
+        return ( po for po in self._justice[j_id] )
+
+    def set_justice_pos(self, j_id, po_ids):
+        assert 0 <= j_id < len(self._justice)
+        for po_id in po_ids:
+            assert self.get_po_type(po_id) == AIG.JUSTICE
+        self._justice[j_id] = pos
     
     # Negation
     
@@ -504,7 +533,10 @@ class AIG(object):
         return self.create_or(self.negate(left), right)
     
     def create_ite(self, f_if, f_then, f_else):
-        return self.create_or( self.create_and(f_if, f_then), self.create_and( self.negate(f_if), f_else) )
+        return self.create_or( 
+            self.create_and( f_if, f_then), 
+            self.create_and( self.negate(f_if), f_else) 
+            )
 
     # Object numbers
     
@@ -522,6 +554,15 @@ class AIG(object):
         
     def n_pos(self):
         return len( self._pos )
+        
+    def n_pos_by_type(self, type):
+        res = 0
+        for _ in self.get_pos_by_type(type):
+            res += 1
+        return res
+        
+    def n_justice(self):
+        return len( self._justice )
 
     def n_buffers(self):
         return len( self._buffers )
@@ -544,10 +585,19 @@ class AIG(object):
         return  ( i<<1 for i, n in enumerate(self._nodes) if n.is_and() )
     
     def get_pos(self):
-        return ( po for po in self._pos )
-            
+        return ( (po_id, po_fanin, po_type) for po_id, (po_fanin, po_type) in enumerate(self._pos) )
+
+    def get_pos_by_type(self, type):
+        return ( (po_id, po_fanin, po_type) for po_id, po_fanin, po_type in self.get_pos() if po_type==type )
+        
     def get_po_fanins(self):
-        return ( po[0] for po in self._pos )
+        return ( po for _,po,_ in self.get_pos() )
+        
+    def get_po_fanins_by_type(self, type):
+        return ( po for _,po,po_type in self.get_pos() if po_type==type)
+        
+    def get_justice_properties(self):
+        return ( (i,po_ids) for i, po_ids in enumerate( self._justice ) )
             
     def get_nonterminals(self):
         return ( i<<1 for i,n in enumerate(self._nodes) if n.is_nonterminal() )

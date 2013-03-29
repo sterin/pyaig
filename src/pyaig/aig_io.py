@@ -8,32 +8,58 @@ import subprocess
 
 from aig import AIG
 
-AIGER_VERSION_1_0 = 0
-AIGER_VERSION_1_9 = 1
-
 class _aiger_writer(object):
-    
-    def __init__(self, fout, I, L, O, A):
+
+    def __init__(self, fout, I, L, O, A, B, C, J, F):
         
         M = I+L+A
-        fout.write("aig %d %d %d %d %d\n"%(M,I,L,O,A))
+        fout.write("aig %d %d %d %d %d"%(M,I,L,O,A))
+        
+        if B+C+J+F > 0:
+            fout.write(" %d"%B )
+            
+        if C+J+F > 0:
+            fout.write(" %d"%C )
+
+        if J+F > 0:
+            fout.write(" %d"%J )
+            
+        if F > 0:
+            fout.write(" %d"%F )
+        
+        fout.write('\n')
+        
         self._fout = fout
         self._M = M
         self._I = I
         self._L = L
         self._O = O
         self._A = A
+        self._B = B
+        self._C = C
+        self._J = J
+        self._F = F
+        
         self._next = (I+1)<<1
     
     def write_inputs(self):
         pass
-    
-    def write_latch(self, next):
-        self._fout.write("%d\n"%next)
+        
+    def write_latch(self, next, init):
+        if init==AIG.INIT_ZERO:
+            self._fout.write("%d\n"%next)
+        elif init==AIG.INIT_ONE:
+            self._fout.write("%d 1\n"%next)
+        else:
+            self._fout.write("%d %d\n"%(next, self._next))
+        
         self._next += 2
     
     def write_po(self, po):
         self._fout.write("%d\n"%po)
+    
+    def write_justice_header(self, pos):
+        self._fout.write("%d\n"%len(pos))
     
     def write_and(self, left, right):
         if left < right:
@@ -50,8 +76,8 @@ class _aiger_writer(object):
     def write_latch_name(self, i, name):
         self._fout.write("l%d %s\n"%(i, name) )
 
-    def write_po_name(self, i, name):
-        self._fout.write("o%d %s\n"%(i, name) )
+    def write_po_name(self, type, i, name):
+        self._fout.write("%s%d %s\n"%(type, i, name) )
 
     def _encode(self, x):
         while (x & ~0x7f) > 0:
@@ -62,6 +88,7 @@ class _aiger_writer(object):
         self._fout.write( chr(x) )
 
 def write_aiger(aig, fout):
+    
     map_aiger = {}
     
     aiger_i = 0
@@ -91,16 +118,42 @@ def write_aiger(aig, fout):
         else:
             return lit
     
-    writer = _aiger_writer(fout, aig.n_pis(), aig.n_latches(), aig.n_pos(), aig.n_nonterminals())
+    writer = _aiger_writer(
+        fout, 
+        aig.n_pis(), 
+        aig.n_latches(), 
+        aig.n_pos_by_type(AIG.OUTPUT), 
+        aig.n_nonterminals(), 
+        aig.n_pos_by_type(AIG.BAD_STATES), 
+        aig.n_pos_by_type(AIG.CONSTRAINT), 
+        aig.n_justice(),
+        aig.n_pos_by_type(AIG.FAIRNESS), 
+        )
         
     writer.write_inputs()
 
     for l in aig.get_latches():
-        writer.write_latch(aiger_lit(aig.get_next(l)))
+        writer.write_latch(aiger_lit(aig.get_next(l)), aig.get_init(l))
                     
-    for po in aig.get_pos():
-        writer.write_po(aiger_lit(po))             
+    for po in aig.get_po_fanins_by_type(AIG.OUTPUT):
+        writer.write_po(aiger_lit(po))      
+    
+    for po in aig.get_po_fanins_by_type(AIG.BAD_STATES):
+        writer.write_po(aiger_lit(po))      
+    
+    for po in aig.get_po_fanins_by_type(AIG.CONSTRAINT):
+        writer.write_po(aiger_lit(po))      
 
+    for _, j_pos in aig.get_justice_properties():
+        writer.write_justice_header(j_pos)
+    
+    for _, j_pos in aig.get_justice_properties():
+        for po_id in j_pos:
+            writer.write_po( aiger_lit( aig.get_po_fanin(po_id) ) )
+
+    for po in aig.get_po_fanins_by_type(AIG.FAIRNESS):
+        writer.write_po(aiger_lit(po))      
+    
     for g in aig.get_nonterminals():
         n = aig.deref(g)
         if n.is_buffer():
@@ -120,9 +173,31 @@ def write_aiger(aig, fout):
         if aig.has_name(l):
             writer.write_latch_name(i, aig.get_name_by_id(l) )
         
-    for i,_ in enumerate(aig.get_pos()):
-        if aig.po_has_name(i):
-            writer.write_po_name(i, aig.get_name_by_po(i) )
+    for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.OUTPUT)):
+        if aig.po_has_name(po_id):
+            writer.write_po_name('o', i, aig.get_name_by_po(po_id) )
+
+    for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.BAD_STATES)):
+        if aig.po_has_name(po_id):
+            writer.write_po_name('b', i, aig.get_name_by_po(po_id) )
+
+    for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.CONSTRAINT)):
+        if aig.po_has_name(po_id):
+            writer.write_po_name('c', i, aig.get_name_by_po(po_id) )
+
+    for i, po_ids in aig.get_justice_properties():
+        
+        if not po_ids:
+            continue
+        
+        po_id = po_ids[0]
+        
+        if aig.po_has_name(po_id):
+            writer.write_po_name('j', i, aig.get_name_by_po(po_id) )
+
+    for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.FAIRNESS)):
+        if aig.po_has_name(po_id):
+            writer.write_po_name('f',i, aig.get_name_by_po(po_id) )
 
 def write_cnf(aig, fout):
     map_cnf = {}
@@ -254,7 +329,12 @@ def read_aiger(fin):
    
     vars = []
     nexts = []
-    pos = []
+    
+    pos_output = []
+    pos_bad_states = []
+    pos_constraint = []
+    pos_justice = []
+    pos_fairness = []
     
     vars.append( aig.get_const0() )
     
@@ -283,9 +363,29 @@ def read_aiger(fin):
         vars.append( aig.create_latch() )
         nexts.append( parse_latch(fin.readline() ) )
 
-    for i in xrange(O + B + C + J + F):
-        pos.append( int( fin.readline() ) )
+    for i in xrange(O):
+        pos_output.append( int( fin.readline() ) )
+
+    for i in xrange(B):
+        pos_bad_states.append( int( fin.readline() ) )
+
+    for i in xrange(C):
+        pos_constraint.append( int( fin.readline() ) )
+
+    n_j_pos = []
+
+    for i in xrange(J):
+        n_j_pos.append( int(fin.readline()) )
         
+    for n in n_j_pos:
+        pos = []
+        for i in xrange(n):
+            pos.append( int( fin.readline() ) )
+        pos_justice.append(pos)
+
+    for i in xrange(F):
+        pos_fairness.append( int( fin.readline() ) )
+
     def decode():
 
         i = 0
@@ -317,20 +417,21 @@ def read_aiger(fin):
         aig.set_init( vars[v], nexts[l][1] )
         aig.set_next( vars[v], lit(nexts[l][0]) )
         
-    for i in xrange(O):
-        aig.create_po( lit(pos[i]), po_type=AIG.OUTPUT )
+    for po in pos_output:
+        aig.create_po( lit(po), po_type=AIG.OUTPUT )
         
-    for i in xrange(B):
-        aig.create_po( lit(pos[i]), po_type=AIG.BAD_STATES )
+    for po in pos_bad_states:
+        aig.create_po( lit(po), po_type=AIG.BAD_STATES )
         
-    for i in xrange(C):
-        aig.create_po( lit(pos[i]), po_type=AIG.CONSTRAINT )
+    for po in pos_constraint:
+        aig.create_po( lit(po), po_type=AIG.CONSTRAINT )
         
-    for i in xrange(J):
-        aig.create_po( lit(pos[i]), po_type=AIG.JUSTICE )
+    for pos in pos_justice:
+        po_ids = [ aig.create_po( lit(po), po_type=AIG.JUSTICE ) for po in pos ]
+        aig.create_justice( po_ids )
         
-    for i in xrange(F):
-        aig.create_po( lit(pos[i]), po_type=AIG.FAIRNESS )
+    for po in pos_fairness:
+        aig.create_po( lit(po), po_type=AIG.FAIRNESS )
         
     for line in fin:
         m = re.match( r'i(\d+) (.*)', line )
@@ -341,6 +442,11 @@ def read_aiger(fin):
         m = re.match( r'l(\d+) (.*)', line )
         if m:
             aig.set_name( vars[I+int(m.group(1))+1], m.group(2))
+            continue
+        
+        m = re.match( r'o(\d+) (.*)', line )
+        if m:
+            aig.set_po_name( int(m.group(1)), m.group(2))
             continue
         
     return aig
