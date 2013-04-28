@@ -346,6 +346,9 @@ class AIG(object):
         del self._id_to_name[f]
         del self._name_to_id[name]
 
+    def iter_names(self):
+        return self._id_to_name.iteritems()
+
     # PO names
     
     def set_po_name(self, po, name):
@@ -370,6 +373,9 @@ class AIG(object):
     
     def get_name_by_po(self, po):
         return self._po_to_name[po]
+
+    def iter_po_names(self):
+        return ( (po_id, self.get_po_fanin(po_id), po_name) for po_id, po_name in self._po_to_name )
 
     # Query IDs
         
