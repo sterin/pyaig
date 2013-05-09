@@ -764,32 +764,31 @@ class AIG(object):
               
         return res
 
-    def conjunction(self, fs):
-
-        def helper(fs):
-
-            if len(fs)==0:
-                return AIG.get_const1()
+    def conjunction( self, fs ):
         
-            if len(fs)==1:
-                return fs[0]
+        res = self.get_const1()
         
-            return self.create_and( helper( fs[0:len(fs)/2]), helper( fs[len(fs)/2:] ) )
+        for f in fs:
+            res = self.create_and( res, f )
         
-        return helper(list(fs))
-    
-    def disjunction(self, fs):
+        return res
         
-        return AIG.negate( self.conjunction( AIG.negate(f) for f in fs ) )
-
-    def mux( self, select, args):
+    def disjunction (self, fs):
         
-        assert len(args) == len(select)
+        res = self.get_const0()
+        
+        for f in fs:
+            res = self.create_or( res, f )
+        
+        return res
+        
+    def mux(self, select, args):
         
         res = []
         
-        for col in zip( args ) :
+        for col in zip(*args):
             
-            res.append( self.disjunction( self.create_and(s,c) for s, c in zip(select, col) ) )
+            f = self.disjunction( self.create_and(s,c) for s,c in zip(select,col) )
+            res.append( f )
             
         return res
