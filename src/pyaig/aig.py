@@ -535,6 +535,13 @@ class AIG(object):
             return f
     
     @staticmethod
+    def positive_if(f, c):
+        if c:
+            return f
+        else:
+            return f^1
+    
+    @staticmethod
     def negate_if_negated(f, c):
         return f ^ ( c & 1 )
     
@@ -756,4 +763,33 @@ class AIG(object):
                 res.add(fo)
               
         return res
+
+    def conjunction(self, fs):
+
+        def helper(fs):
+
+            if len(fs)==0:
+                return AIG.get_const1()
+        
+            if len(fs)==1:
+                return fs[0]
+        
+            return self.create_and( helper( fs[0:len(fs)/2]), helper( fs[len(fs)/2:] ) )
+        
+        return helper(list(fs))
     
+    def disjunction(self, fs):
+        
+        return AIG.negate( self.conjunction( AIG.negate(f) for f in fs ) )
+
+    def mux( self, select, args):
+        
+        assert len(args) == len(select)
+        
+        res = []
+        
+        for col in zip( args ) :
+            
+            res.append( self.disjunction( self.create_and(s,c) for s, c in zip(select, col) ) )
+            
+        return res
