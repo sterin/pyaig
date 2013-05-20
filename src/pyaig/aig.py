@@ -375,7 +375,7 @@ class AIG(object):
         return self._po_to_name[po]
 
     def iter_po_names(self):
-        return ( (po_id, self.get_po_fanin(po_id), po_name) for po_id, po_name in self._po_to_name )
+        return ( (po_id, self.get_po_fanin(po_id), po_name) for po_id, po_name in self._po_to_name.iteritems() )
 
     # Query IDs
         
