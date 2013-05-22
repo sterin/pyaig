@@ -417,21 +417,29 @@ def read_aiger(fin):
         aig.set_init( vars[v], nexts[l][1] )
         aig.set_next( vars[v], lit(nexts[l][0]) )
         
+    output_pos = []
+        
     for po in pos_output:
-        aig.create_po( lit(po), po_type=AIG.OUTPUT )
+        output_pos.append( aig.create_po( lit(po), po_type=AIG.OUTPUT ) )
+    
+    bad_states_pos = []
         
     for po in pos_bad_states:
-        aig.create_po( lit(po), po_type=AIG.BAD_STATES )
+        bad_states_pos.append( aig.create_po( lit(po), po_type=AIG.BAD_STATES ) )
+        
+    constraint_pos = []
         
     for po in pos_constraint:
-        aig.create_po( lit(po), po_type=AIG.CONSTRAINT )
+        constraint_pos.append( aig.create_po( lit(po), po_type=AIG.CONSTRAINT ) )
         
     for pos in pos_justice:
         po_ids = [ aig.create_po( lit(po), po_type=AIG.JUSTICE ) for po in pos ]
         aig.create_justice( po_ids )
+
+    fairness_pos = []
         
     for po in pos_fairness:
-        aig.create_po( lit(po), po_type=AIG.FAIRNESS )
+        fairness_pos.append( aig.create_po( lit(po), po_type=AIG.FAIRNESS ) )
         
     for line in fin:
         m = re.match( r'i(\d+) (.*)', line )
@@ -446,7 +454,22 @@ def read_aiger(fin):
         
         m = re.match( r'o(\d+) (.*)', line )
         if m:
-            aig.set_po_name( int(m.group(1)), m.group(2))
+            aig.set_po_name( output_pos[int(m.group(1))], m.group(2))
+            continue
+        
+        m = re.match( r'b(\d+) (.*)', line )
+        if m:
+            aig.set_po_name( bad_states_pos[int(m.group(1))], m.group(2))
+            continue
+        
+        m = re.match( r'c(\d+) (.*)', line )
+        if m:
+            aig.set_po_name( constraint_pos[int(m.group(1))], m.group(2))
+            continue
+        
+        m = re.match( r'f(\d+) (.*)', line )
+        if m:
+            aig.set_po_name( fairness_pos[int(m.group(1))], m.group(2))
             continue
         
     return aig
