@@ -300,6 +300,8 @@ class AIG(object):
         return po_id
         
     def create_justice(self, po_ids):
+        po_ids = list(po_ids)
+
         j_id = len(self._justice)
 
         for po_id in po_ids:
@@ -649,23 +651,25 @@ class AIG(object):
     # return the sequential cone of 'roots', stop at 'stop'
 
     def get_cone(self, roots, stop=[], fanins=get_positive_fanins):
+
         visited = set()
         
         dfs_stack = list(roots)
         
         while dfs_stack:
+
             cur = self.get_positive(dfs_stack.pop())
-            
+
             if cur in visited or cur in stop:
                 continue
             
             visited.add(cur)
             
-            for fi in self.get_positive_fanins(cur):
+            for fi in fanins(self, cur):
                 if fi not in visited:
                     dfs_stack.append(fi)
         
-        return visited
+        return sorted(visited)
 
     # return the sequential cone of roots
 
