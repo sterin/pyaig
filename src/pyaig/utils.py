@@ -1,4 +1,5 @@
 from aig import AIG
+from aig_io import read_aiger, write_aiger
 
 def extract_justice_po(aig, j_po):
     
@@ -48,3 +49,61 @@ def extract_justice_po(aig, j_po):
     dst.create_justice( po_map[po_id] for po_id in aig.get_justice_pos(j_po) )
             
     return dst
+
+class po_info(object):
+    
+    def __init__(self, aig):
+        
+        self.pos_by_type = {}
+        self.j_props = []
+
+        self.save(aig)
+            
+    def save(self, aig):
+
+        for po_id, _, po_type in aig.get_pos():
+            self.pos_by_type.setdefault(po_type, set()).add( po_id )
+            
+        for i, po_ids in aig.get_justice_properties():
+            self.j_props.append(po_ids)
+
+    @staticmethod
+    def remove(aig):
+
+        aig.remove_justice()
+
+        for po_id, _, po_type in aig.get_pos():
+            aig.set_po_type(po_id, AIG.OUTPUT)
+
+    def restore(self, aig):
+    
+        for po_type, po_ids in self.pos_by_type.iteritems():
+            for po_id in po_ids:
+                aig.set_po_type(po_id, po_type)
+
+        for po_ids in self.j_props:
+            aig.create_justice(po_ids)
+
+def save_po_info( aiger_in, aiger_out ):
+
+    with open(aiger_in, 'r') as fin:
+        aig = read_aiger( fin )
+        
+    saved = po_info(aig)
+    
+    po_info.remove(aig)
+    
+    with open(aiger_out, 'w') as fout:
+        write_aiger( aig, fout )    
+    
+    return saved
+
+def restore_po_info( saved, aiger_in, aiger_out ):
+    
+    with open(aiger_in, 'r') as fin:
+        aig = read_aiger( fin )
+
+    saved.restore(aig)
+
+    with open(aiger_out, 'w') as fout:
+        write_aiger( aig, fout )
