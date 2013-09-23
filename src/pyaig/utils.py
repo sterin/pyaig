@@ -10,7 +10,7 @@ def extract_justice_po(aig, j_po):
     po_map = {}
     
     for po_id, po_fanin, po_type in aig.get_pos():
-        if po_type in ( AIG.BAD_STATES, AIG.CONSTRAINT, AIG.FAIRNESS ):
+        if po_type in ( AIG.CONSTRAINT, AIG.FAIRNESS ):
             po_map[ po_id ] = len(po_map)
             
     for po_id in aig.get_justice_pos(j_po):
