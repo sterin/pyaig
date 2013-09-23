@@ -6,4 +6,4 @@ from aig_io import write_cnf
 
 from simulate import read_cex, simulate, print_cex
 
-from utils import extract_justice_po
+import utils
