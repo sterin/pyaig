@@ -6,7 +6,7 @@ def extract_justice_po(aig, j_po):
     dst = AIG()
     
     latches = []
-    M = AIG.map(aig, dst)
+    M = AIG.fmap()
 
     po_map = {}
     
