@@ -37,8 +37,8 @@ class _Node(object):
         return _Node( _Node.PI, pi_id, 0)
     
     @staticmethod
-    def make_latch(l_id, init):
-        return _Node( _Node.LATCH, l_id, (init, None))
+    def make_latch(l_id, init, next=None):
+        return _Node( _Node.LATCH, l_id, (init, next))
     
     @staticmethod
     def make_and(left, right):
@@ -228,9 +228,9 @@ class AIG(object):
 
         return fn
     
-    def create_latch(self, name=None, init=INIT_ZERO):
+    def create_latch(self, name=None, init=INIT_ZERO, next=None):
         l_id = len(self._latches)
-        n = _Node.make_latch(l_id, init)
+        n = _Node.make_latch(l_id, init, next)
         fn = len(self._nodes)<<1
         
         self._nodes.append(n)
@@ -238,7 +238,7 @@ class AIG(object):
 
         if name is not None:
             self.set_name(fn, name)
-
+        
         return fn
 
     def create_and(self, left, right):
