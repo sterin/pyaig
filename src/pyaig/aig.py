@@ -147,19 +147,45 @@ class AIG(object):
 
     # map AIG nodes to AIG nodes, take negation into account
 
-    class map(object):
+    class fmap(object):
         
-        def __init__(self, src, dst):
-            self.m = { src.get_const0():dst.get_const0() }
+        def __init__(self):
+            self.m = { AIG.get_const0():AIG.get_const0() }
             
         def __getitem__(self, f):
             return AIG.negate_if_negated( self.m[AIG.get_positive(f)], f )
             
         def __setitem__(self, f, g):
             self.m[ AIG.get_positive(f) ] = AIG.negate_if_negated(g, f)
+            
+        def __contains__(self, f):
+            return AIG.get_positive(f) in self.m
+            
+        def __delitem__(self, f):
+            del self.m[ AIG.get_positive(f) ]
         
         def iteritems(self):
             return self.m.iteritems()
+            
+    class fset(object):
+        
+        def __init__(self, fs=[]):
+            self.s = set( AIG.get_positive(f) for f in fs )
+        
+        def __contains__(self, f):
+            return AIG.get_positive(f) in self.s
+            
+        def __len__(self):
+            return len(self.s)
+            
+        def __iter__(self):
+            return self.s.__iter__()
+            
+        def add(self, f):
+            return self.s.add( AIG.get_positive(f) )
+            
+        def remove(self, f):
+            return self.s.remove( AIG.get_positive(f) )
     
     # PO types
     
