@@ -750,24 +750,39 @@ class AIG(object):
                 
         return aig
 
-    # return rebuild the functions 'fs' in src using the substitution defined by 'srctodst'
-
-    def compose_from(self, src, srctodst, fs):
-
-        def copy(f):
-            return AIG.negate_if_negated( srctodst[AIG.get_positive(f)] , f)
+    def compose(self, src, M):
+        """ rebuild the AIG 'src' inside 'self', connecting the two AIGs using 'M' """        
         
-        for f in sorted(src.get_cone(fs, srctodst)):
+        for f in src.construction_order():
             
-            if src.is_and(f):
-                fd = self.create_and( copy(src.get_left(f), copy(src.get_left(f)) ) )
+            if f in M:
+                continue
                 
-            elif src.is_buffer(f):
-                fd = self.create_and( copy(src.get_buf_in(f) ) )
-            
-            srctodst[f] = fd
+            n = src.deref(f)
+                
+            if n.is_pi():
+                M[f] = self.create_pi()
+                
+            elif n.is_and():
+                M[f] = self.create_and( M[n.get_left()], M[n.get_right()] )
+                
+            elif n.is_latch():
+                M[f] = self.create_latch(init=n.get_init())
+                
+            elif n.is_buffer():
+                M[f] = self.create_buffer()
 
-        return [ srctodst[f] for f in fs]
+        for b in src.get_buffers():
+            
+            self.set_buf_in(M[b], M[src.get_buf_in(b)])
+
+        for l in src.get_latches():
+            
+            self.set_next(M[l], M[src.get_next(l)])
+
+        for po_id, po_fanin, po_type in src.get_pos():
+            
+            self.create_po( M[po_fanin], po_type=po_type )
 
     def cutpoint(self, f):
         
