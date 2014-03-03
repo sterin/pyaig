@@ -702,16 +702,46 @@ class AIG(object):
     def get_seq_cone(self, roots, stop=[]):
         return self.get_cone(roots, stop, fanins=AIG.get_positive_seq_fanins)
 
-    # remove buffers
-    
+    def topological_sort(self, roots, stop=()):
+        """ topologically sort the combinatorial cone of 'roots', stop at 'stop' """
+
+        def fanins(f):
+            if f in stop:
+                return []
+            return [ fi for fi in self.get_positive_fanins(f) ]
+
+        visited = AIG.fset(roots)
+        dfs_stack = [ (f, fanins(f)) for f in visited ]
+        
+        while dfs_stack:
+
+            cur, ds = dfs_stack[-1]
+            
+            if not ds:
+                
+                dfs_stack.pop()
+                
+                if cur is not None:
+                    yield cur
+                
+                continue
+                
+            d = ds.pop()
+
+            if d in visited:
+                continue
+            
+            visited.add(d)
+            
+            for fi in fanins(d):
+                if fi not in visited:
+                    dfs_stack.append( (fi, fanins(fi) ) )
+
     def clean(self):
-        "return a new AIG, containing only the cone of the POs, removing buffers while attempting to preserve names"
+        """ return a new AIG, containing only the cone of the POs, removing buffers while attempting to preserve names """
 
         aig = AIG()
-        visited = {}
-        
-        def map(f):
-            return AIG.negate_if_negated( visited[AIG.get_positive(f)], f )
+        M = AIG.fmap()
             
         def visit(f, af):
             if self.has_name(f):
@@ -719,34 +749,35 @@ class AIG(object):
                     aig.set_name( AIG.get_positive(af), "~%s"%self.get_name_by_id(f) )
                 else:
                     aig.set_name( af, self.get_name_by_id(f) )
-            visited[f] = af
+            M[f] = af
 
-        cone = self.get_seq_cone( self.get_po_fanins() )        
+        cone = self.get_seq_cone( self.get_po_fanins() )
 
-        for f in self.construction_order():
+        for f in self.topological_order( cone ):
             
-            if f not in cone:
-                continue
-                
             n = self.deref(f)
                 
             if n.is_pi():
                 visit( f, aig.create_pi() )
                 
             elif n.is_and():
-                visit( f, aig.create_and( map(n.get_left()), map(n.get_right()) ) )
+                visit( f, aig.create_and( M[n.get_left()], M[n.get_right()] ) )
                 
             elif n.is_latch():
                 l = aig.create_latch(n.get_init())
-                l.set_next( map( n.get_next() ) )
                 visit( f, l )
                 
             elif n.is_buffer():
-                visit( f, map( n.get_buf_in()) )
+                visit( f, M( n.get_buf_in()) )
+                
+        for l in self.get_latches():
+
+            if l in cone:
+                aig.set_next(M[l], M[self.get_next(l)])                
                 
         for po_id, po_f in enumerate( self.get_po_fanins() ):
-            
-            po = aig.create_po( map(po_f), self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=aig.get_po_type(po_id) )
+
+            po = aig.create_po( M[po_f], self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=aig.get_po_type(po_id) )
                 
         return aig
 
