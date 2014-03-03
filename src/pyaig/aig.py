@@ -633,11 +633,11 @@ class AIG(object):
 
     # Object access as iterators (use list() to get a copy)
     
-    def topological_order(self):
+    def construction_order(self):
         return ( i<<1 for i in xrange(1, len(self._nodes) ) )
         
-    def topological_order_deref(self):
-        return ( (f, self.deref(f)) for f in self.topological_order() )
+    def construction_order_deref(self):
+        return ( (f, self.deref(f)) for f in self.construction_order() )
     
     def get_pis(self):
         return  ( i<<1 for i, n in enumerate(self._nodes) if n.is_pi() )
@@ -723,7 +723,7 @@ class AIG(object):
 
         cone = self.get_seq_cone( self.get_po_fanins() )        
 
-        for f in self.topological_order():
+        for f in self.construction_order():
             
             if f not in cone:
                 continue
@@ -778,7 +778,7 @@ class AIG(object):
 
     def build_fanouts(self):
         
-        for f in self.topological_order():
+        for f in self.construction_order():
 
             for g in self.get_positive_fanins(f):
                 
