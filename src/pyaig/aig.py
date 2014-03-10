@@ -726,11 +726,11 @@ class AIG(object):
 
         visited = AIG.fset(roots)
         dfs_stack = [ (f, fanins(f)) for f in visited ]
-        
+
         while dfs_stack:
 
             cur, ds = dfs_stack[-1]
-            
+
             if not ds:
                 
                 dfs_stack.pop()
@@ -746,10 +746,8 @@ class AIG(object):
                 continue
             
             visited.add(d)
-            
-            for fi in fanins(d):
-                if fi not in visited:
-                    dfs_stack.append( (fi, fanins(fi) ) )
+
+            dfs_stack.append( (d,[fi for fi in fanins(d) if fi not in visited]) )
 
     def clean(self):
         """ return a new AIG, containing only the cone of the POs, removing buffers while attempting to preserve names """
