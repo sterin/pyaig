@@ -143,6 +143,20 @@ class _Node(object):
         assert self.is_latch()
         self._right = (self._right[0], f)
 
+    def __repr__(self):
+        type = "ERROR"
+        if self._type==_Node.AND:
+            type = "AND"
+        elif self._type==_Node.BUFFER:
+            type = "BUFFER"
+        elif self._type==_Node.CONST0:
+            type = "CONST0"
+        elif self._type==_Node.LATCH:
+            type = "LATCH"
+        elif self._type==_Node.PI:
+            type = "PI"
+        return "<pyaig.aig._Node _type=%s, _left=%d, _right=%d>"%(type, self._left, self._right)
+
 class AIG(object):
 
     # map AIG nodes to AIG nodes, take negation into account
