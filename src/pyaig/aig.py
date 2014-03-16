@@ -196,11 +196,14 @@ class AIG(object):
             return self.s.__iter__()
             
         def add(self, f):
-            return self.s.add( AIG.get_positive(f) )
+            f = AIG.get_positive(f)
+            res = f in self.s
+            self.s.add(f)
+            return res
             
         def remove(self, f):
             return self.s.remove( AIG.get_positive(f) )
-    
+                
     # PO types
     
     OUTPUT = 0
@@ -724,30 +727,35 @@ class AIG(object):
                 return []
             return [ fi for fi in self.get_positive_fanins(f) ]
 
-        visited = AIG.fset(roots)
-        dfs_stack = [ (f, fanins(f)) for f in visited ]
-
-        while dfs_stack:
-
-            cur, ds = dfs_stack[-1]
-
-            if not ds:
-                
-                dfs_stack.pop()
-                
-                if cur is not None:
-                    yield cur
-                
-                continue
-                
-            d = ds.pop()
-
-            if d in visited:
-                continue
+        visited = AIG.fset()
+        dfs_stack = []
+    
+        for root in roots:
             
-            visited.add(d)
+            if visited.add(root):
+                continue
+                
+            dfs_stack.append( (root, fanins(root) ) 
 
-            dfs_stack.append( (d,[fi for fi in fanins(d) if fi not in visited]) )
+            while dfs_stack:
+
+                cur, ds = dfs_stack[-1]
+
+                if not ds:
+                    
+                    dfs_stack.pop()
+                    
+                    if cur is not None:
+                        yield cur
+                    
+                    continue
+                    
+                d = ds.pop()
+
+                if visited.add(d):
+                    continue
+
+                dfs_stack.append( (d,[fi for fi in fanins(d) if fi not in visited]) )
 
     def clean(self):
         """ return a new AIG, containing only the cone of the POs, removing buffers while attempting to preserve names """
@@ -765,7 +773,7 @@ class AIG(object):
 
         cone = self.get_seq_cone( self.get_po_fanins() )
 
-        for f in self.topological_order( cone ):
+        for f in self.topological_sort(cone):
             
             n = self.deref(f)
                 
@@ -776,10 +784,11 @@ class AIG(object):
                 visit( f, aig.create_and( M[n.get_left()], M[n.get_right()] ) )
                 
             elif n.is_latch():
-                l = aig.create_latch(n.get_init())
+                l = aig.create_latch(init=n.get_init())
                 visit( f, l )
                 
             elif n.is_buffer():
+                assert False
                 visit( f, M( n.get_buf_in()) )
                 
         for l in self.get_latches():
@@ -789,7 +798,7 @@ class AIG(object):
                 
         for po_id, po_f in enumerate( self.get_po_fanins() ):
 
-            po = aig.create_po( M[po_f], self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=aig.get_po_type(po_id) )
+            po = aig.create_po( M[po_f], self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=self.get_po_type(po_id) )
                 
         return aig
 
