@@ -735,7 +735,7 @@ class AIG(object):
             if visited.add(root):
                 continue
                 
-            dfs_stack.append( (root, fanins(root) ) 
+            dfs_stack.append( (root, fanins(root)) ) 
 
             while dfs_stack:
 
