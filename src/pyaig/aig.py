@@ -155,7 +155,7 @@ class _Node(object):
             type = "LATCH"
         elif self._type==_Node.PI:
             type = "PI"
-        return "<pyaig.aig._Node _type=%s, _left=%d, _right=%d>"%(type, self._left, self._right)
+        return "<pyaig.aig._Node _type=%s, _left=%s, _right=%s>"%(type, str(self._left), str(self._right))
 
 class AIG(object):
 
