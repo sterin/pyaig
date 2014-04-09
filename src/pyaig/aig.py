@@ -877,7 +877,7 @@ class AIG(object):
         if N < 2:
             return self.conjunction(fs)
         
-        return self.create_and( balanced_conjunction(fs[:N/2]), balanced_conjunction(fs[N/2:]) )
+        return self.create_and( self.balanced_conjunction(fs[:N/2]), self.balanced_conjunction(fs[N/2:]) )
         
     def disjunction (self, fs):
         
@@ -895,7 +895,7 @@ class AIG(object):
         if N < 2:
             return self.disjunction(fs)
         
-        return self.create_and( balanced_disjunction(fs[:N/2]), balanced_disjunction(fs[N/2:]) )
+        return self.create_and( self.balanced_disjunction(fs[:N/2]), self.balanced_disjunction(fs[N/2:]) )
 
     def mux(self, select, args):
         
