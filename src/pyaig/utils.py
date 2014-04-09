@@ -108,10 +108,10 @@ def restore_po_info( saved, aiger_in, aiger_out ):
     with open(aiger_out, 'w') as fout:
         write_aiger( aig, fout )
         
-def delay(aig, f, n=1, init=AIG.INIT_ZERO):
+def delay(aig, f, n=1, init=AIG.INIT_ZERO, name=None):
     """ delay 'f' for 'n' cycles, start at 'init' """
 
     for i in xrange(n):
-        f = aig.create_latch(init=init, next=f)
+        f = aig.create_latch(name=name, init=init, next=f)
         
     return f
