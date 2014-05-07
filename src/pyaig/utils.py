@@ -115,3 +115,59 @@ def delay(aig, f, n=1, init=AIG.INIT_ZERO, name=None):
         f = aig.create_latch(name=name, init=init, next=f)
         
     return f
+
+def dfs(roots, children):
+
+    dfs_stack = roots
+
+    visited = set()
+
+    while dfs_tack:
+
+        cur = dfs_stack.pop()
+
+        if cur in visited:
+            continue
+
+        visited.add(cur)
+        yield cur
+
+        for c in children(cur):
+            if c not in visited:
+                dfs_stack.append(c)
+
+visited = set()
+order = []
+
+def visit(cur, children):
+
+    if cur in visited:
+        return
+
+    visited.add(cur)
+
+    for c in children(cur):
+        visit(c, childen)
+
+    order.append(cur)
+
+
+def topological_sort(roots, children, mark, unmark, is_marked):
+
+    dfs_stack = [ unmark(r) for r in roots ]
+
+    visited = set()
+
+    while dfs_stack:
+
+        cur = dfs_stack.pop()
+
+        if is_marked(cur):
+            yield umark(cur)
+
+        elif cur not in visited:
+
+            visited.add(cur)
+
+            dfs_stack.append( mark(cur) )
+            dfs_stack.extend( unmark(c) for c in children(cur) if c not in visited )
