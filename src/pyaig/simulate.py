@@ -1,23 +1,48 @@
 from aig import AIG
 from aig_io import read_aiger
 
-def read_cex(f):
-    
-    f.readline()
-    f.readline()
-    
-    latch_values = [int(c) for c in f.readline().strip()]
-    pi_values = []
-    
+def filter_lines(f):
+
     for line in f:
-        
+
         line = line.strip()
-        
-        if line=='.':
+
+        if not line:
+            continue
+
+        elif line.startswith('u'):
+            continue
+
+        elif line.startswith('c'):
+            continue
+
+        yield line
+
+def read_cex(f):
+
+    result = None
+    prop = None
+
+    latch_values = None
+    pi_values = []
+
+    for line in filter_lines(f):
+
+        if result is None:
+            result = line
+
+        elif prop is None:
+            prop = line
+
+        elif line=='.':
             break
-            
-        pi_values.append([int(c) for c in line])
-    
+
+        elif latch_values is None:
+            latch_values = [int(c) for c in line]
+
+        else:
+            pi_values.append([int(c) for c in line])
+
     return latch_values, pi_values
 
 class pyaig_values(object):
@@ -39,6 +64,8 @@ def simulate(aig, latch_values, pi_values):
     simulation = []
 
     values = pyaig_values(aig)
+
+    assert len(latch_values) == aig.n_latches()
 
     for l, v in zip(aig.get_latches(), latch_values):
         values[l] = v
@@ -80,16 +107,26 @@ def print_cex( aig, simulation, symbols):
         print
 
 if __name__=="__main__":
-    
-    latch_values, pi_values = read_cex(open('/home/sterin/workspaces/dev/ltl_benchmarks/cex','r'))
-    aig = read_aiger(open('/home/sterin/workspaces/dev/ltl_benchmarks/bc57-sensors__p0.ltl2smv.aig','r'))
+
+    print 'reading cex'
+
+    with open('/home/sterin/workspaces/dev/pyabc/run/oski1rub04_b0.bad_cex', 'r') as f:
+        latch_values, pi_values = read_cex(f)
+
+    print 'reading aig'
+
+    with open('/home/sterin/workspaces/dev/pyabc/run/oski1rub04.aig', 'r') as f:
+        aig = read_aiger(f)
+
+    aig.set_name(aig.get_po_fanin(0), 'xxx')
+
+    print 'simulating'
+
     simulation = simulate(aig, latch_values, pi_values)
     
     symbols = { n:f for f, n in aig.iter_names() }
     symbols.update( (n,f) for _, f, n in aig.iter_po_names() )
 
+    print 'CEX:'
+
     print_cex(aig, simulation, symbols)
-    
-    
-    
-    
