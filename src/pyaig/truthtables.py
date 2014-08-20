@@ -74,8 +74,11 @@ class _truth_table(object):
         vy = self.m.var(y, 1) 
         
         return vy&( vx&c_xy[0][0] | ~vx&c_xy[0][1] ) | ~vy&( vx&c_xy[1][0] | ~vx&c_xy[1][1] )
-    
-    def negate(self, v):
+
+    def negate_if(self, c):
+        return ~self if c else self
+
+    def negate_var(self, v):
         vv = self.m.var(v, 1) 
         cc = self.cofactors(v)
         return vv&cc[1] | ~vv&cc[0]
