@@ -6,6 +6,7 @@ from aig_io import write_cnf
 
 from simulate import read_cex, simulate, print_cex
 
+import primitives
 from truthtables import truth_tables
 
 import utils
