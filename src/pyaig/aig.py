@@ -163,14 +163,16 @@ class AIG(object):
 
     class fmap(object):
         
-        def __init__(self):
+        def __init__(self, fs=[], negate_if_negated=None):
+            self.negate_if_negated = negate_if_negated if negate_if_negated else AIG.negate_if_negated
             self.m = { AIG.get_const0():AIG.get_const0() }
+            self.m.update( (AIG.get_positive(f), self.negate_if_negated(g, f)) for f,g in fs )
             
         def __getitem__(self, f):
-            return AIG.negate_if_negated( self.m[AIG.get_positive(f)], f )
+            return self.negate_if_negated( self.m[AIG.get_positive(f)], f )
             
         def __setitem__(self, f, g):
-            self.m[ AIG.get_positive(f) ] = AIG.negate_if_negated(g, f)
+            self.m[ AIG.get_positive(f) ] = self.negate_if_negated(g, f)
             
         def __contains__(self, f):
             return AIG.get_positive(f) in self.m
