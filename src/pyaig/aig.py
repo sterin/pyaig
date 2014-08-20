@@ -897,6 +897,15 @@ class AIG(object):
         
         return self.create_and( self.balanced_disjunction(fs[:N/2]), self.balanced_disjunction(fs[N/2:]) )
 
+    def large_xor(self, fs):
+
+        res = self.get_const0()
+
+        for f in fs:
+            res = self.create_xor(res, f)
+
+        return res
+
     def mux(self, select, args):
         
         res = []
