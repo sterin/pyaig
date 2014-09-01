@@ -1,8 +1,13 @@
 try:
     from gmpy2 import popcount
 except ImportError:
-    def popcount(i):
-        return bin(i).count('1')
+    try:
+        from gmpy import popcount
+    except ImportError:
+        def popcount(i):
+            return bin(i).count('1')
+
+print popcount
 
 class _truth_table(object):
     
