@@ -1,3 +1,9 @@
+try:
+    from gmpy2 import popcount
+except ImportError:
+    def popcount(i):
+        return bin(i).count('1')
+
 class _truth_table(object):
     
     def __init__(self, m, d):
@@ -110,6 +116,10 @@ class _truth_table(object):
                 return v
 
         return None
+
+    def count(self):
+        "count the number of minterms in the on-set"
+        return popcount(self.d)
 
     def permutations(self):
         "Generate all permutations of a _truth_table in lexicographical order"
@@ -363,3 +373,6 @@ if __name__=="__main__":
 
     print "SOP, permuted:"
     print res.SOP()
+
+    print "COUNT"
+    print N, res.count()
