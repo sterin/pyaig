@@ -7,8 +7,6 @@ except ImportError:
         def popcount(i):
             return bin(i).count('1')
 
-print popcount
-
 class _truth_table(object):
     
     def __init__(self, m, d):
