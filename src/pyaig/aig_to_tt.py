@@ -4,14 +4,14 @@ from truthtables import truth_tables
 
 
 class aig_to_tt_map(AIG.fmap):
-    def __init__(self, fs):
-        super(aig_to_tt_map, self).__init__(fs=fs, negate_if_negated=lambda tt,f: tt.negate_if(AIG.is_negated(f)) )
+    def __init__(self, m, fs):
+        super(aig_to_tt_map, self).__init__(fs=fs, negate_if_negated=lambda tt,f: tt.negate_if(AIG.is_negated(f)), zero=m.const(0) )
 
 
 def aig_to_tt(aig):
 
     m = truth_tables(aig.n_pis())
-    M = aig_to_tt_map( (aig.get_pi_by_id(i), m.var(i)) for i in xrange(aig.n_pis()) )
+    M = aig_to_tt_map( m, ((aig.get_pi_by_id(i), m.var(i)) for i in xrange(aig.n_pis())) )
 
     for f, n in aig.construction_order_deref():
 
