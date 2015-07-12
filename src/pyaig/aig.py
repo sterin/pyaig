@@ -761,7 +761,7 @@ class AIG(object):
 
                 dfs_stack.append( (d,[fi for fi in fanins(d) if fi not in visited]) )
 
-    def clean(self):
+    def clean(self, pos=None):
         """ return a new AIG, containing only the cone of the POs, removing buffers while attempting to preserve names """
 
         aig = AIG()
@@ -775,7 +775,9 @@ class AIG(object):
                     aig.set_name( af, self.get_name_by_id(f) )
             M[f] = af
 
-        cone = self.get_seq_cone( self.get_po_fanins() )
+        pos = range(len(self._pos)) if pos is None else pos
+
+        cone = self.get_seq_cone( self.get_po_fanin(po_id) for po_id in pos )
 
         for f in self.topological_sort(cone):
             
@@ -800,7 +802,9 @@ class AIG(object):
             if l in cone:
                 aig.set_next(M[l], M[self.get_next(l)])                
                 
-        for po_id, po_f in enumerate( self.get_po_fanins() ):
+        for po_id in enumerate( pos ):
+
+            po_f = self.get_po_fanin(po_id)
 
             po = aig.create_po( M[po_f], self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=self.get_po_type(po_id) )
                 
