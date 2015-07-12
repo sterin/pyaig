@@ -234,13 +234,13 @@ def write_cnf(aig, fout):
         else:
             return lit_cnf
     
-    for po in aig.get_pos():
+    for po in aig.get_po_fanins():
         fout.write( "%d 0\n"%lit(po) )             
 
     for g in aig.get_and_gates():
         n = aig.deref(g)
 
-        x = lit(g, map_cnf)
+        x = lit(g)
         y = lit(n.get_left())
         z = lit(n.get_right())
         
