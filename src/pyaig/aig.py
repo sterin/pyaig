@@ -802,7 +802,7 @@ class AIG(object):
             if l in cone:
                 aig.set_next(M[l], M[self.get_next(l)])                
                 
-        for po_id in enumerate( pos ):
+        for po_id in pos:
 
             po_f = self.get_po_fanin(po_id)
 
