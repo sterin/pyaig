@@ -903,7 +903,7 @@ class AIG(object):
         if N < 2:
             return self.disjunction(fs)
         
-        return self.create_and( self.balanced_disjunction(fs[:N/2]), self.balanced_disjunction(fs[N/2:]) )
+        return self.create_or( self.balanced_disjunction(fs[:N/2]), self.balanced_disjunction(fs[N/2:]) )
 
     def large_xor(self, fs):
 
