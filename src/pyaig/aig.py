@@ -168,7 +168,8 @@ class AIG(object):
             self.negate_if_negated = negate_if_negated if negate_if_negated else AIG.negate_if_negated
             zero = AIG.get_const0() if zero is None else zero
             self.m = { AIG.get_const0():zero }
-            self.m.update( (AIG.get_positive(f), self.negate_if_negated(g, f)) for f,g in fs )
+            if fs:
+                self.update(fs)
             
         def __getitem__(self, f):
             return self.negate_if_negated( self.m[AIG.get_positive(f)], f )
@@ -184,6 +185,9 @@ class AIG(object):
         
         def iteritems(self):
             return self.m.iteritems()
+
+        def update(self, fs):
+            self.m.update( (AIG.get_positive(f), self.negate_if_negated(g, f)) for f,g in fs )
             
     class fset(object):
         
