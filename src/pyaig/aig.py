@@ -810,7 +810,7 @@ class AIG(object):
                 
         return aig
 
-    def compose(self, src, M):
+    def compose(self, src, M, copy_pos=True):
         """ rebuild the AIG 'src' inside 'self', connecting the two AIGs using 'M' """        
         
         for f in src.construction_order():
@@ -833,16 +833,14 @@ class AIG(object):
                 M[f] = self.create_buffer()
 
         for b in src.get_buffers():
-            
             self.set_buf_in(M[b], M[src.get_buf_in(b)])
 
         for l in src.get_latches():
-            
             self.set_next(M[l], M[src.get_next(l)])
 
-        for po_id, po_fanin, po_type in src.get_pos():
-            
-            self.create_po( M[po_fanin], po_type=po_type )
+        if copy_pos:
+            for po_id, po_fanin, po_type in src.get_pos():
+                self.create_po( M[po_fanin], po_type=po_type )
 
     def cutpoint(self, f):
         
