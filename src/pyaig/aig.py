@@ -926,3 +926,12 @@ class AIG(object):
             res.append( f )
             
         return res
+
+    def create_constraint(aig, f, name=None):
+        return aig.create_po(aig, f, name=name, po_type=AIG.CONSTRAINT)
+
+    def create_property(aig, f, name=None):
+        return aig.create_po(aig, AIG.negate(f), name=name, po_type=AIG.BAD_STATES)
+
+    def create_bad_states(aig, f, name=None):
+        return aig.create_po(aig, f, name=name, po_type=AIG.BAD_STATES)
