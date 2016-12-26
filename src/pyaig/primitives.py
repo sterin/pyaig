@@ -43,7 +43,7 @@ def less_than_equal(aig, X, Y):
 
     return aig.create_or(
         aig.create_and( AIG.negate(X[0]), Y[0] ),
-        aig.create_and( aig.create_iff(X[0],Y[0]), less_than(aig, X[1:], Y[1:]))
+        aig.create_and( aig.create_iff(X[0],Y[0]), less_than_equal(aig, X[1:], Y[1:]))
     )
 
 _lfsr_taps = {
