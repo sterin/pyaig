@@ -414,7 +414,6 @@ class AIG(object):
                     uid += 1
                     if not self.has_name(name):
                         break
-                print "setting: {} to {}".format(pi, name)
                 self.set_name(pi, name)
 
     # PO names
