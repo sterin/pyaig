@@ -402,6 +402,21 @@ class AIG(object):
     def iter_names(self):
         return self._id_to_name.iteritems()
 
+    def fill_pi_names(self, replace=False, template="i{}"):
+
+        uid = 0
+        for pi in self.get_pis():
+            if replace or not self.name_exists(pi):
+                if self.has_name(pi):
+                    self.remove_name(pi)
+                while True:
+                    name = template.format(uid)
+                    uid += 1
+                    if not self.has_name(name):
+                        break
+                print "setting: {} to {}".format(pi, name)
+                self.set_name(pi, name)
+
     # PO names
     
     def set_po_name(self, po, name):
