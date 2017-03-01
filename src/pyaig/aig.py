@@ -563,7 +563,7 @@ class AIG(object):
     
     def set_po_fanin(self, po, f):
         assert 0 <= po < len(self._pos)
-        self._pos[po][0] = ( f, self._pos[po][1] ) 
+        self._pos[po] = ( f, self._pos[po][1] )
     
     def set_po_type(self, po, po_type):
         assert 0 <= po < len(self._pos)
