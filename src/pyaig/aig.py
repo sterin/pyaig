@@ -402,17 +402,21 @@ class AIG(object):
     def iter_names(self):
         return self._id_to_name.iteritems()
 
-    def fill_pi_names(self, replace=False, template="i{}"):
+    def fill_pi_names(self, replace=False, template="I_{}"):
 
-        uid = 0
-        for pi in self.get_pis():
-            if replace or not self.name_exists(pi):
+        if replace:
+            for pi in self.get_pis():
                 if self.has_name(pi):
                     self.remove_name(pi)
+
+        uid = 0
+
+        for pi in self.get_pis():
+            if not self.has_name(pi):
                 while True:
                     name = template.format(uid)
                     uid += 1
-                    if not self.has_name(name):
+                    if not self.name_exists(name):
                         break
                 self.set_name(pi, name)
 
@@ -443,6 +447,24 @@ class AIG(object):
 
     def iter_po_names(self):
         return ( (po_id, self.get_po_fanin(po_id), po_name) for po_id, po_name in self._po_to_name.iteritems() )
+
+    def fill_po_names(self, replace=False, template="O_{}"):
+
+        if replace:
+            self._name_to_po.clear()
+            self._po_to_name.clear()
+
+        po_names = set(name for _, _, name in self.iter_po_names())
+
+        uid = 0
+        for po_id, _, _ in self.get_pos():
+            if not self.po_has_name(po_id):
+                while True:
+                    name = template.format(uid)
+                    uid += 1
+                    if name not in po_names:
+                        break
+                self.set_po_name(po_id, name)
 
     # Query IDs
         
