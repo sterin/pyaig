@@ -199,13 +199,15 @@ def write_aiger_file(aig, fout):
         if aig.po_has_name(po_id):
             writer.write_po_name('f',i, aig.get_name_by_po(po_id) )
 
+    return map_aiger
+
 
 def write_aiger(aig, f):
     if type(f) == str:
         with open(f, "wb") as fout:
-            write_aiger_file(aig, fout)
+            return write_aiger_file(aig, fout)
     else:
-        write_aiger_file(aig, f)
+        return write_aiger_file(aig, f)
 
 
 def write_cnf(aig, fout):
