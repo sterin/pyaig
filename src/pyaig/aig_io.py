@@ -87,7 +87,7 @@ class _aiger_writer(object):
         
         self._fout.write( chr(x) )
 
-def write_aiger(aig, fout):
+def write_aiger_file(aig, fout):
     
     map_aiger = {}
     
@@ -198,6 +198,15 @@ def write_aiger(aig, fout):
     for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.FAIRNESS)):
         if aig.po_has_name(po_id):
             writer.write_po_name('f',i, aig.get_name_by_po(po_id) )
+
+
+def write_aiger(aig, f):
+    if type(f) == str:
+        with open(f, "wb") as fout:
+            write_aiger_file(aig, fout)
+    else:
+        write_aiger_file(aig, f)
+
 
 def write_cnf(aig, fout):
     map_cnf = {}
@@ -312,7 +321,7 @@ def is_sat(aig):
     write_cnf(fout)
     fout.close()
 
-def read_aiger(fin):
+def read_aiger_file(fin):
     
     aig = AIG()
 
@@ -473,3 +482,11 @@ def read_aiger(fin):
             continue
         
     return aig
+
+
+def read_aiger(f):
+    if type(f) == str:
+        with open(f, "rb") as fin:
+            return read_aiger_file(fin)
+    else:
+        return read_aiger_file(f)
