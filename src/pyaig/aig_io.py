@@ -507,3 +507,210 @@ def read_aiger(f):
             return read_aiger_file(fin)
     else:
         return read_aiger_file(f)
+
+
+def marshal_aiger(aig):
+
+    data = bytearray()
+
+    def putu(x):
+        while x >= 0x80:
+            data.append( x&0x7F | 0x80 )
+            x >>= 7
+        data.append(x)
+
+    M = AIG.fmap(negate_if_negated=lambda f, c: f^c)
+
+    # Constants
+
+    n_const = 2
+    M[ AIG.get_const1() ] = 2
+
+    # PIs
+
+    n_pis = aig.n_pis()
+    putu(n_pis)
+
+    for i, pi in enumerate(aig.get_pis()):
+        M[ pi ] = (n_const + i) << 1
+
+    # Latches
+
+    n_latches = aig.n_latches()
+    putu(n_latches)
+
+    for i, ll in enumerate(aig.get_latches()):
+        M[ ll ] = (n_const + n_pis + i) << 1
+
+    # Gates
+
+    n_ands = aig.n_ands()   
+    putu(n_ands)
+
+    for i, f in enumerate(aig.get_and_gates()):
+
+        putu( M[ aig.get_and_right(f) ] << 1)
+        putu( M[ aig.get_and_left(f) ] )
+
+        M[ f ] = (n_const + n_pis + n_latches + i) << 1
+
+    # Latches
+
+    V = { AIG.INIT_NONDET:0, AIG.INIT_ZERO:2, AIG.INIT_ONE:3 }
+    
+    for ll in aig.get_latches():
+        putu( (M[ aig.get_next(ll) ] << 2) | V[ aig.get_init(ll) ] )
+
+    # Properties
+
+    output_pos = list( aig.get_pos_by_type(AIG.OUTPUT) )
+    bad_pos =  list( aig.get_pos_by_type(AIG.BAD_STATES) )
+    constraint_pos =  list( aig.get_pos_by_type(AIG.CONSTRAINT) )
+    fairness_pos =  list( aig.get_pos_by_type(AIG.FAIRNESS) )
+    justice_pos =  list( aig.get_pos_by_type(AIG.JUSTICE) )
+    justice_properties = list( aig.get_justice_properties() )
+
+    if len(bad_pos) == 0 and len(justice_properties)==0 and len(output_pos) > 0:
+        bad_pos = output_pos
+
+    putu( len(bad_pos) )
+    for po_id, po_fanin, po_type in bad_pos:
+        putu( M[po_fanin] ^ 1 )
+
+    # Fairness
+
+    putu(1)
+
+    total = len(justice_pos) + len(justice_properties) * (len(fairness_pos) + 1)
+    putu(total)
+
+    for i, po_ids in justice_properties:
+
+        for po_id in po_ids:
+            putu( M[ aig.get_po_fanin(po_id) ] )
+
+        for po_id, po_fanin, po_type in fairness_pos:
+            putu( M[po_fanin] )
+
+        putu(0)
+
+    # Constraints
+
+    putu( len(constraint_pos) )
+    for po_id, po_fanin, po_type in constraint_pos:
+        putu( M[po_fanin] )
+
+    return data
+
+
+class archive(object):
+
+    def __init__(self, data):
+        
+        self.data = data
+        self.pos = 0
+
+    def get_next(self):
+
+        c = self.data[ self.pos ]
+        self.pos += 1
+
+        return c
+
+    def getu(self):
+        
+        x = 0
+        shift = 0
+        while True:
+            c = self.get_next()
+            x |= ( c & 0x7F ) << shift
+            shift += 7
+            if c < 0x80:
+                return x
+
+
+class ifmap(object):
+    
+    def __init__(self):
+        self.m = {}
+        
+    def __getitem__(self, i):
+        return AIG.negate_if(self.m[ i & ~1 ], i&1)
+        
+    def __setitem__(self, i, f):
+        self.m[ i & ~1 ] = AIG.negate_if(f, i&1)
+
+
+def unmarshal_aiger(data):
+
+    a = archive(data)
+
+    aig = AIG()
+    M = ifmap()
+
+    # Constants
+
+    n_const = 2
+    M[ 2 ] = AIG.get_const1()
+
+    # PIs
+
+    n_pis = a.getu()
+
+    for i in xrange(n_pis):
+        M[ (n_const + i) << 1 ] = aig.create_pi()
+
+    # Latches
+
+    n_latches = a.getu()
+
+    for i in xrange(n_latches):
+        M[ (n_const + n_pis + i) << 1 ] = aig.create_latch()
+
+    # Gates
+
+    n_ands = a.getu()
+
+    for i in xrange(n_ands):
+        f0 = M[ a.getu() >> 1 ]
+        f1 = M[ a.getu() ]
+        M[ (n_const + n_pis + n_latches + i) << 1 ] = aig.create_and(f0, f1)
+    
+    # Latches
+
+    V = { 0:AIG.INIT_NONDET, 2:AIG.INIT_ZERO, 3:AIG.INIT_ONE }
+
+    for ll in aig.get_latches():
+        u = a.getu()
+        aig.set_init(ll, V[ u & 3])
+        aig.set_next(ll, M[ u >> 2 ])
+
+    # Properties
+
+    n_props = a.getu()
+    for i in xrange(n_props):
+        aig.create_po(M[ a.getu() ^ 1 ], po_type=AIG.BAD_STATES)
+
+    # Liveness
+
+    fair_version = a.getu()
+    assert fair_version == 1
+
+    fair_total = a.getu()
+    cur_justice = []
+
+    for i in xrange(fair_total):
+        u = a.getu()
+        if u > 0:
+            cur_justice.append( aig.create_po(M[u], po_type=AIG.JUSTICE) )
+        else:
+            aig.create_justice(cur_justice)
+            cur_justice = []
+
+    # Constraints
+
+    n_constr = a.getu()
+    for i in xrange(n_constr):
+        aig.create_po(M[ a.getu() ^ 1 ], po_type=AIG.CONSTRAINT)
+
+    return aig
