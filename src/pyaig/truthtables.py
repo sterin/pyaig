@@ -7,53 +7,54 @@ except ImportError:
         def popcount(i):
             return bin(i).count('1')
 
+
 class _truth_table(object):
-    
+
     def __init__(self, m, d):
         self.m = m
         self.d = d
 
     def nvars(self):
         return self.m.N
-    
+
     def __eq__(self, rhs):
         assert self.m == rhs.m
         return self.d == rhs.d
-        
+
     def __hash__(self):
         return self.d
-    
+
     def __and__(self, rhs):
         assert self.m == rhs.m
         d = self.d & rhs.d
         return _truth_table(self.m, d)
-    
+
     def __or__(self, rhs):
         assert self.m == rhs.m
         d = self.d | rhs.d
         return _truth_table(self.m, d)
-    
+
     def __xor__(self, rhs):
-        
+
         if type(rhs) in (bool, int):
             if rhs:
                 return ~self
             return self
-        
+
         assert self.m == rhs.m
         d = self.d ^ rhs.d
         return _truth_table(self.m, d)
-    
+
     def __invert__(self):
         d = self.m.mask & ~self.d
         return _truth_table(self.m, d)
-    
+
     def implies(self, rhs):
         return ~self | rhs
-    
+
     def iff(self, rhs):
         return ~(self ^ rhs)
-    
+
     def cofactor(self, v, c):
         
         m = self.m.cofactor_masks[c][v]
@@ -66,7 +67,7 @@ class _truth_table(object):
         else:
             d |= (d << nbits)
         
-        return _truth_table( self.m, d)
+        return _truth_table(self.m, d)
     
     def cofactors(self, v):
         return ( self.cofactor(v,True), self.cofactor(v, False) )
@@ -79,18 +80,22 @@ class _truth_table(object):
         c_x = self.cofactors(x)
         c_xy = [ c.cofactors(y) for c in c_x ]
             
-        vx = self.m.var(x, 1) 
+        vx = self.m.var(x, 1)
+        vx_ = self.m.var(x, 0)
+
         vy = self.m.var(y, 1) 
+        vy_ = self.m.var(y, 0) 
         
-        return vy&( vx&c_xy[0][0] | ~vx&c_xy[0][1] ) | ~vy&( vx&c_xy[1][0] | ~vx&c_xy[1][1] )
+        return vy&( vx&c_xy[0][0] | vx_&c_xy[0][1] ) | vy_&( vx&c_xy[1][0] | vx_&c_xy[1][1] )
 
     def negate_if(self, c):
         return ~self if c else self
 
     def negate_var(self, v):
         vv = self.m.var(v, 1) 
+        vv_ = self.m.var(v, 0) 
         cc = self.cofactors(v)
-        return vv&cc[1] | ~vv&cc[0]
+        return vv&cc[1] | vv_&cc[0]
     
     def exists(self, v):
         c1, c0 = self.cofactors(v)
@@ -171,7 +176,7 @@ class _truth_table(object):
             for v in xrange( n ):
                 
                 if m & ( 1 << v ):
-                    tt = tt.negate(v)
+                    tt = tt.negate_var(v)
 
             yield tt
             
@@ -196,7 +201,7 @@ class _truth_table(object):
             for i in xrange(1, N+1):
                 if i in p:
                     pl.append( '1' )
-                elif (-i) in p:
+                elif -i in p:
                     pl.append( '0' )
                 else:
                     pl.append( '-' )
@@ -235,6 +240,7 @@ class _truth_table(object):
         (cres, fres) = self.m.isop(self,self, 0)
         assert fres == self
         return cres  
+
     
 class truth_tables(object):
 
@@ -261,6 +267,9 @@ class truth_tables(object):
                 
             self.cofactor_masks[0].append( res )
             self.cofactor_masks[1].append( res << bits )
+
+        self.all_consts = [ _truth_table(self, self.mask*c) for c in (0, 1) ]
+        self.all_vars = [ [_truth_table(self, self.cofactor_masks[c][i]) for i in xrange(N)] for c in (0, 1) ]
         
     def name(self, i):
         if i in self.names:
@@ -268,13 +277,11 @@ class truth_tables(object):
         return 'x%d'%i
         
     def const(self, v):
-        return _truth_table(self, self.mask*v)
+        return self.all_consts[v]
         
     def var(self, i, c=1):
-        assert 0<=i< self.N
-        assert c==0 or c==1
-        return _truth_table(self, self.cofactor_masks[c][i])
-    
+        return self.all_vars[c][i]
+
     def all_functions(self):
         
         nfuncs = ( 1<<self.nbits )
@@ -329,9 +336,8 @@ class truth_tables(object):
         
     def xor(self, fs):
         return reduce( lambda f,g: f^g, fs, self.const(0) )
-        
-def cube(n):
-    return reduce( lambda f,g: f&g, [ _truth_table.var(n, i, 1) for i in range(n) ], _truth_table.const(n,1) )
+
+
 
 if __name__=="__main__":
     
@@ -379,3 +385,8 @@ if __name__=="__main__":
 
     print "COUNT"
     print N, res.count()
+
+    print
+    for N in xrange(0, 4+1):
+        m = truth_tables(N)
+        print 'Number of NPN classes for %d-variable Boolean functions is: %d'%(N, len(set(m.canonize().values())))
