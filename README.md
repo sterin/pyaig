@@ -1,4 +1,4 @@
-# PyAIG: A simpe Python AIG package
+# PyAIG: A simpe Python AIG and Truth Table package
 
 ## AIG
 
@@ -39,7 +39,7 @@ print(f)
 Will print the truth as a prime-irredudant cover, in this case:
 
 ```python
-A&B&E + !A&C&!D&E + !A&!C&D&E + F
+A&B&E + ~A&C&~D&E + ~A&~C&D&E + F
 ```
 
 Or,

@@ -247,7 +247,7 @@ class _truth_table(object):
                 if l>0:
                     pl.append( self.m.name(l-1) )
                 else:
-                    pl.append( "!%s"%self.m.name(-(l+1)) )
+                    pl.append( "~%s"%self.m.name(-(l+1)) )
             res.append( '&'.join(pl) )
         
         return ' + '.join(res)
