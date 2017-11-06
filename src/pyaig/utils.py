@@ -1,5 +1,5 @@
-from aig import AIG
-from aig_io import read_aiger, write_aiger
+from .aig import AIG
+from .aig_io import read_aiger, write_aiger
 
 def extract_justice_po(aig, j_po):
     
@@ -17,7 +17,7 @@ def extract_justice_po(aig, j_po):
     for po_id in aig.get_justice_pos(j_po):
         po_map[ po_id ] = len(po_map)
 
-    cone = aig.get_seq_cone( aig.get_po_fanin(po_id) for po_id in po_map.iterkeys() )
+    cone = aig.get_seq_cone( aig.get_po_fanin(po_id) for po_id in po_map )
     
     for f in cone:
         
@@ -43,7 +43,7 @@ def extract_justice_po(aig, j_po):
         next = M[aig.get_next(f)]
         dst.set_next(l, next)
             
-    for po_id in po_map.iterkeys():
+    for po_id in po_map:
         dst.create_po( M[aig.get_po_fanin(po_id)], po_type=aig.get_po_type(po_id) )
         
     dst.create_justice( po_map[po_id] for po_id in aig.get_justice_pos(j_po) )
@@ -77,7 +77,7 @@ class po_info(object):
 
     def restore(self, aig):
     
-        for po_type, po_ids in self.pos_by_type.iteritems():
+        for po_type, po_ids in iteritems(self.pos_by_type):
             for po_id in po_ids:
                 aig.set_po_type(po_id, po_type)
 

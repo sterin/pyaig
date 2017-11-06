@@ -3,6 +3,9 @@
 # Author: Baruch Sterin <sterin@berkeley.edu>
 # Simple Python AIG package
 
+from past.builtins import xrange
+from future.utils import iteritems
+
 import itertools
 
 class _Node(object):
@@ -184,7 +187,7 @@ class AIG(object):
             del self.m[ AIG.get_positive(f) ]
         
         def iteritems(self):
-            return self.m.iteritems()
+            return iteritems(self.m)
 
         def update(self, fs):
             self.m.update( (AIG.get_positive(f), self.negate_if_negated(g, f)) for f,g in fs )
@@ -400,7 +403,7 @@ class AIG(object):
         del self._name_to_id[name]
 
     def iter_names(self):
-        return self._id_to_name.iteritems()
+        return iteritems(self._id_to_name)
 
     def fill_pi_names(self, replace=False, template="I_{}"):
 
@@ -446,7 +449,7 @@ class AIG(object):
         return self._po_to_name[po]
 
     def iter_po_names(self):
-        return ( (po_id, self.get_po_fanin(po_id), po_name) for po_id, po_name in self._po_to_name.iteritems() )
+        return ( (po_id, self.get_po_fanin(po_id), po_name) for po_id, po_name in iteritems(self._po_to_name) )
 
     def fill_po_names(self, replace=False, template="O_{}"):
 

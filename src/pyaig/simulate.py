@@ -1,5 +1,10 @@
-from aig import AIG
-from aig_io import read_aiger
+from __future__ import print_function
+from future.utils import iteritems
+from past.builtins import xrange
+
+from .aig import AIG
+from .aig_io import read_aiger
+
 
 def filter_lines(f):
 
@@ -10,15 +15,18 @@ def filter_lines(f):
         if not line:
             continue
 
-        elif line.startswith('u'):
+        elif line.startswith(b'u'):
             continue
 
-        elif line.startswith('c'):
+        elif line.startswith(b'c'):
             continue
 
         yield line
 
+
 def read_cex(f):
+
+    V = { b'0': 0, b'1':1, 0:0, 1:0, '0':0, '1':1, ord('0'):0, ord('1'):1 }
 
     result = None
     prop = None
@@ -38,12 +46,13 @@ def read_cex(f):
             break
 
         elif latch_values is None:
-            latch_values = [int(c) for c in line]
+            latch_values = [V[c] for c in line]
 
         else:
-            pi_values.append([int(c) for c in line])
+            pi_values.append([V[c] for c in line])
 
     return latch_values, pi_values
+
 
 class pyaig_values(object):
 
@@ -57,7 +66,8 @@ class pyaig_values(object):
         self.m[AIG.get_positive(f)] = v ^ AIG.is_negated(f)
 
     def iteritems(self):
-        return self.m.iteritems()
+        return iteritems(self.m)
+
 
 def simulate(aig, latch_values, pi_values):
 
@@ -89,44 +99,73 @@ def simulate(aig, latch_values, pi_values):
         
     return simulation
 
+
 def print_cex( aig, simulation, symbols):
 
-    V = ["0", "1", '?']
+    maxlen = +max( len(sym) for sym in symbols )
     
-    maxlen = +max( len(sym) for sym in symbols.iterkeys() )
-    
-    for n, f in sorted(symbols.iteritems()):
+    for n, f in sorted(iteritems(symbols)):
         
-        print "%-*s:"%(maxlen, n),
+        print("%-*s:"%(maxlen, n), end='')
 
         for i in xrange(len(simulation)):
             v = simulation[i][f]
             v = str(v) if 0 <= v <= 1 else '?'
-            print v,
+            print(v, end='')
 
-        print
+        print()
+
 
 if __name__=="__main__":
 
-    print 'reading cex'
+    from . import primitives
 
-    with open('/home/sterin/workspaces/dev/pyabc/run/oski1rub04_b0.bad_cex', 'r') as f:
-        latch_values, pi_values = read_cex(f)
+    # create counter AIG
 
-    print 'reading aig'
+    aig = AIG()
 
-    with open('/home/sterin/workspaces/dev/pyabc/run/oski1rub04.aig', 'r') as f:
-        aig = read_aiger(f)
+    latches = primitives.counter(aig, 3, aig.create_pi("enable"))
 
-    aig.set_name(aig.get_po_fanin(0), 'xxx')
+    for l in latches:
+        aig.create_po(l)
 
-    print 'simulating'
+    # counter example
+
+    CEX = b"""
+        b0
+        1
+        000
+        0
+        1
+        0
+        1
+        1
+        1
+        1
+        1
+        1
+        1
+        1
+        1
+    """
+
+    import io
+    latch_values, pi_values = read_cex(io.BytesIO(CEX))
+
+    print(latch_values, pi_values)
+
+    # set names
+
+    for po_id, po_fanin, po_type in aig.get_pos():
+        aig.set_name(aig.get_po_fanin(po_id), 'L%d'%po_id)
+
+    # simulate
 
     simulation = simulate(aig, latch_values, pi_values)
     
     symbols = { n:f for f, n in aig.iter_names() }
     symbols.update( (n,f) for _, f, n in aig.iter_po_names() )
 
-    print 'CEX:'
+    # print CEX
 
     print_cex(aig, simulation, symbols)

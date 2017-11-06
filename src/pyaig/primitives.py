@@ -1,5 +1,10 @@
-from aig import AIG
-from aig_io import write_aiger
+from __future__ import print_function
+
+from .aig import AIG
+from .aig_io import write_aiger
+
+from past.builtins import xrange
+
 
 def counter(aig, width, en=AIG.get_const1(), rst=AIG.get_const0()):
 
@@ -18,9 +23,11 @@ def counter(aig, width, en=AIG.get_const1(), rst=AIG.get_const0()):
 
     return latches
 
+
 def equals(aig, X, Y):
     assert len(X) == len(Y)
     return aig.conjunction( aig.create_iff(x, y) for x,y in zip(X,Y) )
+
 
 def less_than(aig, X, Y):
 
@@ -34,6 +41,7 @@ def less_than(aig, X, Y):
         aig.create_and( aig.create_iff(X[0],Y[0]), less_than(aig, X[1:], Y[1:]))
     )
 
+
 def less_than_equal(aig, X, Y):
 
     assert len(X) == len(Y)
@@ -46,6 +54,7 @@ def less_than_equal(aig, X, Y):
         aig.create_and( aig.create_iff(X[0],Y[0]), less_than_equal(aig, X[1:], Y[1:]))
     )
 
+
 _lfsr_taps = {
     2:[1, 2],
     4:[3, 4],
@@ -54,6 +63,7 @@ _lfsr_taps = {
     32:[25, 26, 30, 32],
     64:[60, 61, 63, 64],
 }
+
 
 def lfsr(aig, width, init=None):
 
@@ -68,9 +78,10 @@ def lfsr(aig, width, init=None):
 
     return L
 
+
 if __name__=='__main__':
 
-    for n in _lfsr_taps.iterkeys():
+    for n in _lfsr_taps:
 
         fname = 'lfsr_%02d.aig'%n
 
@@ -87,6 +98,5 @@ if __name__=='__main__':
         # for i in xrange(n):
         #     aig.create_po(L[i], po_type=AIG.BAD_STATES)
 
-        with open(fname, 'w') as f:
-            print fname
-            write_aiger(aig, f)
+        print(fname)
+        write_aiger(aig, fname)

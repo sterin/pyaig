@@ -1,3 +1,10 @@
+from __future__ import print_function
+
+from past.builtins import xrange
+from future.utils import lrange
+from functools import reduce
+
+
 try:
     from gmpy2 import popcount
 except ImportError:
@@ -147,7 +154,7 @@ class _truth_table(object):
         tt = self
 
         n = tt.nvars()
-        a = range(n)
+        a = lrange(n)
         
         while True:
             
@@ -260,7 +267,7 @@ class truth_tables(object):
         
         self.N = N
         self.nbits = 1 << self.N
-        self.mask = ~( ~0L << self.nbits )
+        self.mask = ~( ~0 << self.nbits )
         self.names = {}
         
         self.cofactor_masks = [[],[]]
@@ -268,7 +275,7 @@ class truth_tables(object):
         for v in xrange(N):
 
             bits = 1<<v
-            res = ~( ~0L << bits ) 
+            res = ~( ~0 << bits ) 
             
             mask_bits = bits << 1
             
@@ -357,21 +364,21 @@ if __name__=="__main__":
     m = truth_tables(N)
     
     import string
-    m.names.update( zip(range(N), string.uppercase ) )
+    m.names.update( zip(xrange(N), string.ascii_uppercase ) )
     
     x = [ m.var(v,1) for v in xrange(N) ]
     
-    print "XOR:"
-    print m.xor(x[:4]).SOP()
+    print( "XOR:" )
+    print( m.xor(x[:4]).SOP() )
     
-    print "AND:"
-    print m.conjunction(x).SOP()
+    print( "AND:" )
+    print( m.conjunction(x).SOP() )
     
-    print "OR:"
-    print m.disjunction(x).SOP()
+    print( "OR:" )
+    print( m.disjunction(x).SOP() )
 
-    print "DEPENDS"
-    print m.conjunction(x[:4]).depend_vars()
+    print( "DEPENDS" )
+    print( m.conjunction(x[:4]).depend_vars() )
 
     res = m.const(0)
     
@@ -381,27 +388,27 @@ if __name__=="__main__":
     for i in xrange(N-2, N):
         res &= ~x[i]
         
-    print "Equations:"
-    print res
-    print
+    print( "Equations:" )
+    print( res )
+    print()
     
-    print "SOP:"
-    print res.SOP()
-    print
+    print( "SOP:" )
+    print( res.SOP() )
+    print()
     
-    res = res.permute(N/2,N-1)
+    res = res.permute(N//2,N-1)
     
-    print "Equations, permuted:"
-    print res
-    print
+    print( "Equations, permuted:" )
+    print( res )
+    print()
 
-    print "SOP, permuted:"
-    print res.SOP()
+    print( "SOP, permuted:" )
+    print( res.SOP() )
 
-    print "COUNT"
-    print N, res.count()
+    print( "COUNT" )
+    print( N, res.count() )
 
-    print
+    print()
     for N in xrange(0, 4+1):
         m = truth_tables(N)
-        print 'Number of NPN classes for %d-variable Boolean functions is: %d'%(N, len(set(m.canonize().values())))
+        print( 'Number of NPN classes for %d-variable Boolean functions is: %d'%(N, len(set(m.canonize().values()))) )

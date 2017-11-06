@@ -6,30 +6,33 @@
 import re
 import subprocess
 
-from aig import AIG
+from past.builtins import xrange
+
+from . aig import AIG
 
 class _aiger_writer(object):
 
-    def __init__(self, fout, I, L, O, A, B, C, J, F):
+    def __init__(self, I, L, O, A, B, C, J, F):
         
+        self._bytes = bytearray()
+
         M = I+L+A
-        fout.write("aig %d %d %d %d %d"%(M,I,L,O,A))
+        self._bytes.extend(b"aig %d %d %d %d %d"%(M,I,L,O,A))
         
         if B+C+J+F > 0:
-            fout.write(" %d"%B )
+            self._bytes.extend(b" %d"%B )
             
         if C+J+F > 0:
-            fout.write(" %d"%C )
+            self._bytes.extend(b" %d"%C )
 
         if J+F > 0:
-            fout.write(" %d"%J )
+            self._bytes.extend(b" %d"%J )
             
         if F > 0:
-            fout.write(" %d"%F )
+            self._bytes.extend(b" %d"%F )
         
-        fout.write('\n')
+        self._bytes.extend(b'\n')
         
-        self._fout = fout
         self._M = M
         self._I = I
         self._L = L
@@ -42,50 +45,58 @@ class _aiger_writer(object):
         
         self._next = (I+1)<<1
     
+    def get_bytes(self):
+        return self._bytes
+
     def write_inputs(self):
         pass
         
     def write_latch(self, next, init):
         if init==AIG.INIT_ZERO:
-            self._fout.write("%d\n"%next)
+            self._bytes.extend(b"%d\n"%next)
         elif init==AIG.INIT_ONE:
-            self._fout.write("%d 1\n"%next)
+            self._bytes.extend(b"%d 1\n"%next)
         else:
-            self._fout.write("%d %d\n"%(next, self._next))
+            self._bytes.extend(b"%d %d\n"%(next, self._next))
         
         self._next += 2
     
     def write_po(self, po):
-        self._fout.write("%d\n"%po)
+        self._bytes.extend(b"%d\n"%po)
     
     def write_justice_header(self, pos):
-        self._fout.write("%d\n"%len(pos))
+        self._bytes.extend(b"%d\n"%len(pos))
     
     def write_and(self, left, right):
         if left < right:
             left, right = right, left
 
-        self._encode( self._next - left)
-        self._encode( left - right)
+        self._encode( self._next - left )
+        self._encode( left - right )
 
         self._next += 2
     
     def write_input_name(self, i, name):
-        self._fout.write("i%d %s\n"%(i, name) )
+        self._bytes.extend(b"i%d %s\n"%(i, self._encode_str(name)))
     
     def write_latch_name(self, i, name):
-        self._fout.write("l%d %s\n"%(i, name) )
+        self._bytes.extend(b"l%d %s\n"%(i, self._encode_str(name)))
 
-    def write_po_name(self, type, i, name):
-        self._fout.write("%s%d %s\n"%(type, i, name) )
+    def write_po_name(self, po_type, i, name):
+        self._bytes.extend(b"%s%d %s\n"%(po_type, i, self._encode_str(name)))
 
     def _encode(self, x):
+
         while (x & ~0x7f) > 0:
-            ch = ( x & 0x7f ) | 0x80
-            self._fout.write( chr(ch) )
+            self._bytes.append( ( x & 0x7f ) | 0x80 )
             x >>= 7
         
-        self._fout.write( chr(x) )
+        self._bytes.append(x)
+
+    def _encode_str(self, s):
+        if isinstance(s, bytes):
+            return s
+        return s.encode('utf-8')
 
 def write_aiger_file(aig, fout):
     
@@ -119,7 +130,6 @@ def write_aiger_file(aig, fout):
             return lit
     
     writer = _aiger_writer(
-        fout, 
         aig.n_pis(), 
         aig.n_latches(), 
         aig.n_pos_by_type(AIG.OUTPUT), 
@@ -175,15 +185,15 @@ def write_aiger_file(aig, fout):
         
     for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.OUTPUT)):
         if aig.po_has_name(po_id):
-            writer.write_po_name('o', i, aig.get_name_by_po(po_id) )
+            writer.write_po_name(b'o', i, aig.get_name_by_po(po_id) )
 
     for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.BAD_STATES)):
         if aig.po_has_name(po_id):
-            writer.write_po_name('b', i, aig.get_name_by_po(po_id) )
+            writer.write_po_name(b'b', i, aig.get_name_by_po(po_id) )
 
     for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.CONSTRAINT)):
         if aig.po_has_name(po_id):
-            writer.write_po_name('c', i, aig.get_name_by_po(po_id) )
+            writer.write_po_name(b'c', i, aig.get_name_by_po(po_id) )
 
     for i, po_ids in aig.get_justice_properties():
         
@@ -193,11 +203,13 @@ def write_aiger_file(aig, fout):
         po_id = po_ids[0]
         
         if aig.po_has_name(po_id):
-            writer.write_po_name('j', i, aig.get_name_by_po(po_id) )
+            writer.write_po_name(b'j', i, aig.get_name_by_po(po_id) )
 
     for i, (po_id, _, _) in enumerate(aig.get_pos_by_type(AIG.FAIRNESS)):
         if aig.po_has_name(po_id):
-            writer.write_po_name('f',i, aig.get_name_by_po(po_id) )
+            writer.write_po_name(b'f',i, aig.get_name_by_po(po_id) )
+
+    fout.write( writer.get_bytes() )
 
     return map_aiger
 
@@ -328,7 +340,7 @@ def read_aiger_file(fin):
     aig = AIG()
 
     header = fin.readline().split()
-    assert header[0] == 'aig' 
+    assert header[0] == b'aig'
     
     args = [ int(t) for t in header[1:] ]
     (M,I,L,O,A) = args[:5]
@@ -354,7 +366,7 @@ def read_aiger_file(fin):
         
     def parse_latch(line):
         
-        tokens = line.strip().split(' ')
+        tokens = line.strip().split(b' ')
         
         next = int(tokens[0])
         init = 0
@@ -456,42 +468,42 @@ def read_aiger_file(fin):
     po_names = set()
 
     for line in fin:
-        m = re.match( r'i(\d+) (.*)', line )
+        m = re.match( b'i(\\d+) (.*)', line )
         if m:
             if m.group(2) not in names:
                 aig.set_name( vars[int(m.group(1))+1], m.group(2))
                 names.add(m.group(2))
             continue
         
-        m = re.match( r'l(\d+) (.*)', line )
+        m = re.match( b'l(\\d+) (.*)', line )
         if m:
             if m.group(2) not in names:
                 aig.set_name( vars[I+int(m.group(1))+1], m.group(2))
                 names.add(m.group(2))
             continue
         
-        m = re.match( r'o(\d+) (.*)', line )
+        m = re.match( b'o(\\d+) (.*)', line )
         if m:
             if m.group(2) not in po_names:
                 aig.set_po_name( output_pos[int(m.group(1))], m.group(2))
                 po_names.add(m.group(2))
             continue
         
-        m = re.match( r'b(\d+) (.*)', line )
+        m = re.match( b'b(\\d+) (.*)', line )
         if m:
             if m.group(2) not in po_names:
                 aig.set_po_name( bad_states_pos[int(m.group(1))], m.group(2))
                 po_names.add(m.group(2))
             continue
         
-        m = re.match( r'c(\d+) (.*)', line )
+        m = re.match( b'c(\\d+) (.*)', line )
         if m:
             if m.group(2) not in po_names:
                 aig.set_po_name( constraint_pos[int(m.group(1))], m.group(2))
                 po_names.add(m.group(2))
             continue
         
-        m = re.match( r'f(\d+) (.*)', line )
+        m = re.match( b'f(\\d+) (.*)', line )
         if m:
             if m.group(2) not in po_names:
                 aig.set_po_name( fairness_pos[int(m.group(1))], m.group(2))
