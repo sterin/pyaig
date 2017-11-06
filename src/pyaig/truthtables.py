@@ -55,6 +55,9 @@ class _truth_table(object):
     def iff(self, rhs):
         return ~(self ^ rhs)
 
+    def ite(self, t, e):
+        return self&t | ~self&e
+
     def cofactor(self, v, c):
         
         m = self.m.cofactor_masks[c][v]
