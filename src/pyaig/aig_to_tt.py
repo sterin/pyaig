@@ -1,6 +1,6 @@
-from aig import AIG
-from aig_io import read_aiger, write_aiger
-from truthtables import truth_tables
+from . aig import AIG
+from . aig_io import read_aiger, write_aiger
+from . truthtables import truth_tables
 
 
 class aig_to_tt_map(AIG.fmap):

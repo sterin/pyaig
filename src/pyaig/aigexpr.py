@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
-from aig import AIG
-    
+from past.builtins import xrange
+
+from . aig import AIG
+
+
 class aigexpr(object):
     
     @staticmethod
@@ -103,7 +106,8 @@ class aigexpr(object):
     
     def __repr__(self):
         return "aigexpr(%s, %X)"%(str(self.aig), self.f)
-         
+
+
 if __name__=="__main__":
             
     aig = AIG()
@@ -137,9 +141,9 @@ if __name__=="__main__":
     po = aig.create_po( l.get_f(), po_type=AIG.FAIRNESS )
     aig.set_po_name(po, "FC1")
 
-    import aig_io
+    from . import aig_io
 
-    aig_io.write_aiger(aig, open('test.aig',"w"))
+    aig_io.write_aiger(aig, 'test.aig')
 
-    aig = aig_io.read_aiger( open('test.aig', 'r'))
-    aig_io.write_aiger(aig, open('test.out.aig',"w"))
+    aig = aig_io.read_aiger( 'test.aig')
+    aig_io.write_aiger(aig, 'test.out.aig')
