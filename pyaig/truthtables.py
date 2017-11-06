@@ -263,7 +263,7 @@ class _truth_table(object):
     
 class truth_tables(object):
 
-    def __init__(self, N):
+    def __init__(self, N, names=()):
         
         self.N = N
         self.nbits = 1 << self.N
@@ -289,6 +289,13 @@ class truth_tables(object):
 
         self.all_consts = [ _truth_table(self, self.mask*c) for c in (0, 1) ]
         self.all_vars = [ [_truth_table(self, self.cofactor_masks[c][i]) for i in xrange(N)] for c in (0, 1) ]
+
+        if names:
+            import inspect
+            frame = inspect.currentframe().f_back
+            for i, name in zip(range(self.N), names):
+                frame.f_globals[name] = self.var(i)
+                self.names[i] = name
         
     def name(self, i):
         if i in self.names:
@@ -357,14 +364,12 @@ class truth_tables(object):
         return reduce( lambda f,g: f^g, fs, self.const(0) )
 
 
-
 if __name__=="__main__":
     
     N = 10
-    m = truth_tables(N)
     
     import string
-    m.names.update( zip(xrange(N), string.ascii_uppercase ) )
+    m = truth_tables(N, string.ascii_uppercase)
     
     x = [ m.var(v,1) for v in xrange(N) ]
     
