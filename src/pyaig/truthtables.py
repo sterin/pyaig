@@ -120,6 +120,15 @@ class _truth_table(object):
     def depends(self, v):
         c1, c0 = self.cofactors(v)
         return c0.d != c1.d
+
+    def depend_vars(self):
+        """
+        >>> m = truth_tables(6)
+        >>> f = m.var(0) ^ ~m.var(3)
+        >>> f.depend_vars()
+        [0, 3]
+        """
+        return [ v for v in xrange(self.nvars()) if self.depends(v) ]
     
     def min_variable(self, minv=0):        
         for v in xrange(minv, self.m.N):
@@ -360,6 +369,9 @@ if __name__=="__main__":
     
     print "OR:"
     print m.disjunction(x).SOP()
+
+    print "DEPENDS"
+    print m.conjunction(x[:4]).depend_vars()
 
     res = m.const(0)
     
