@@ -2,6 +2,7 @@ syntax: glob
 
 *.pyc
 *.pyo
+*.orig
 
 build/
 *.egg-info/
