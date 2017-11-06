@@ -6,6 +6,12 @@ And-Inverter Graph ([AIG](https://en.wikipedia.org/wiki/And-inverter_graph)) is 
 
 ## Installation
 
+Install using `pip`:
+
+```shell
+pip install .
+```
+
 ## Truth Tables example
 
 ### Import the package
