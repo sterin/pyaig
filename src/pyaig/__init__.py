@@ -11,4 +11,4 @@ import primitives
 import utils
 
 from truthtables import truth_tables
-from aig_to_tt import aig_to_tt_map, aig_to_tt, aig_to_tt_fname
+from aig_to_tt import aig_to_tt_map, aig_cut_to_tt, aig_to_tt, aig_to_tt_fname
