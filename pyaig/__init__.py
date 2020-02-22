@@ -1,6 +1,7 @@
 from . aig import AIG
 from . aigexpr import aigexpr
 
+from . aig_io import unflatten_aiger, flatten_aiger
 from . aig_io import read_aiger, write_aiger
 from . aig_io import write_cnf
 from . aig_io import marshal_aiger, unmarshal_aiger

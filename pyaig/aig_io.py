@@ -3,6 +3,7 @@
 # Author: Baruch Sterin <sterin@berkeley.edu>
 # Simple Python AIG readers and writers
 
+import io
 import re
 import subprocess
 
@@ -220,6 +221,12 @@ def write_aiger(aig, f):
             return write_aiger_file(aig, fout)
     else:
         return write_aiger_file(aig, f)
+
+
+def flatten_aiger(aig):
+    f = io.BytesIO()
+    write_aiger_file(aig, f)
+    return f.getvalue()
 
 
 def write_cnf(aig, fout):
@@ -519,6 +526,10 @@ def read_aiger(f):
             return read_aiger_file(fin)
     else:
         return read_aiger_file(f)
+
+
+def unflatten_aiger(buf):
+    return read_aiger_file(io.BytesIO(buf))
 
 
 def marshal_aiger(aig):
