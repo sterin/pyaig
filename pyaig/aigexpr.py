@@ -94,6 +94,9 @@ class aigexpr(object):
     def __invert__(self):
         return aigexpr( self.aig, self.aig.negate(self.f) )
     
+    def __hash__(self):
+        return hash(self.f)
+
     def implies(self, rhs):
         return ~self | rhs
     
