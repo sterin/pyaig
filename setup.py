@@ -9,8 +9,8 @@ def read(fname):
 
 
 setup(
-    name='PyAIG',
-    version='1.0.2',
+    name='pyaig',
+    version='1.0.4',
     license='MIT',
     author=u'Baruch Sterin',
     author_email='pyaig@bsterin.com',
