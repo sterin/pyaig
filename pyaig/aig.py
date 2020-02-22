@@ -439,6 +439,9 @@ class AIG(object):
     def po_has_name(self, po):
         return po in self._po_to_name
 
+    def name_has_po(self, po):
+        return po in self._name_to_po
+
     def remove_po_name(self, po):
         assert self.po_has_name(po)
         name = self.get_name_by_po(po)
