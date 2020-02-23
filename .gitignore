@@ -3,5 +3,8 @@
 *.orig
 
 build/
+dist/
+sdist/
+
 *.egg-info/
 *.egg
