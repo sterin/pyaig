@@ -757,7 +757,7 @@ class AIG(object):
                 continue
             
             visited.add(cur)
-            
+
             for fi in fanins(self, cur):
                 if fi not in visited:
                     dfs_stack.append(fi)
@@ -807,7 +807,7 @@ class AIG(object):
 
                 dfs_stack.append( (d,[fi for fi in fanins(d) if fi not in visited]) )
 
-    def clean(self, pos=None):
+    def clean(self, pos=None, justice_pos=None):
         """ return a new AIG, containing only the cone of the POs, removing buffers while attempting to preserve names """
 
         aig = AIG()
@@ -821,7 +821,16 @@ class AIG(object):
                     aig.set_name( af, self.get_name_by_id(f) )
             M[f] = af
 
-        pos = range(len(self._pos)) if pos is None else pos
+        if pos is None:
+            pos = range(len(self._pos))
+        
+        pos = set(pos)
+
+        if justice_pos is None:
+            justice_pos = range(len(self._justice))
+        
+        for j in justice_pos:
+            pos.update(self._justice[j])
 
         cone = self.get_seq_cone( self.get_po_fanin(po_id) for po_id in pos )
 
@@ -844,15 +853,18 @@ class AIG(object):
                 visit( f, M( n.get_buf_in()) )
                 
         for l in self.get_latches():
-
             if l in cone:
                 aig.set_next(M[l], M[self.get_next(l)])                
                 
+        po_map = {}
+
         for po_id in pos:
-
             po_f = self.get_po_fanin(po_id)
-
             po = aig.create_po( M[po_f], self.get_name_by_po(po_id) if self.po_has_name(po_id) else None, po_type=self.get_po_type(po_id) )
+            po_map[po_id] = po
+
+        for j in justice_pos:
+            aig.create_justice([ po_map[j_po] for j_po in self._justice[j] ])
                 
         return aig
 
