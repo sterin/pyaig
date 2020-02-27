@@ -1,3 +1,6 @@
+from future.utils import iteritems
+from past.builtins import xrange
+
 from .aig import AIG
 from .aig_io import read_aiger, write_aiger
 
