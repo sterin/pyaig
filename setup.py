@@ -19,9 +19,6 @@ setup(
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
     platforms='any',
-    install_requires=[
-        'click',
-        'future'
-    ],
+    install_requires=read('requirements.txt'),
     packages=['pyaig'],
 )
