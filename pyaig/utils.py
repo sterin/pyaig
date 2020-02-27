@@ -125,7 +125,7 @@ def dfs(roots, children):
 
     visited = set()
 
-    while dfs_tack:
+    while dfs_stack:
 
         cur = dfs_stack.pop()
 
@@ -150,7 +150,7 @@ def visit(cur, children):
     visited.add(cur)
 
     for c in children(cur):
-        visit(c, childen)
+        visit(c, children)
 
     order.append(cur)
 
@@ -166,7 +166,7 @@ def topological_sort(roots, children, mark, unmark, is_marked):
         cur = dfs_stack.pop()
 
         if is_marked(cur):
-            yield umark(cur)
+            yield unmark(cur)
 
         elif cur not in visited:
 

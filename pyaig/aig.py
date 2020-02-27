@@ -606,7 +606,7 @@ class AIG(object):
         assert 0 <= j_id < len(self._justice)
         for po_id in po_ids:
             assert self.get_po_type(po_id) == AIG.JUSTICE
-        self._justice[j_id] = pos
+        self._justice[j_id] = po_ids
     
     # Negation
     
