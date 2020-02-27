@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name='pyaig',
-    version='1.0.7',
+    version='1.0.8',
     license='MIT',
     author=u'Baruch Sterin',
     author_email='pyaig@bsterin.com',
@@ -19,6 +19,9 @@ setup(
     long_description=read('README.md'),
     long_description_content_type='text/markdown',
     platforms='any',
+    data_files=[
+        ('.',['requirements.txt'])
+    ],
     install_requires=read('requirements.txt'),
     packages=['pyaig'],
 )
