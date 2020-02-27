@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name='pyaig',
-    version='1.0.9',
+    version='1.0.10',
     license='MIT',
     author=u'Baruch Sterin',
     author_email='pyaig@bsterin.com',
