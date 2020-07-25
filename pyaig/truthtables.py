@@ -56,6 +56,11 @@ class _truth_table(object):
         d = self.m.mask & ~self.d
         return _truth_table(self.m, d)
 
+    def __bool__(self):
+        return self != self.m.const(0)
+
+    __nonzero__ = __bool__
+
     def implies(self, rhs):
         return ~self | rhs
 
