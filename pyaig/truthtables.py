@@ -212,8 +212,8 @@ class _truth_table(object):
                 yield n
                 yield ~n
 
-    def SOP(self):
-        sop = self.isop()
+    def SOP(self, dc=None):
+        sop = self.isop(dc)
 
         res = []
 
@@ -234,7 +234,6 @@ class _truth_table(object):
             res.append( ''.join(pl) )
 
         return '\n'.join(sorted(res))
-
 
 
     def as_string(self, dc=None):
