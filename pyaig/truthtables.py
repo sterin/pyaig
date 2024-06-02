@@ -340,6 +340,9 @@ class truth_tables(object):
 
         return canonized
 
+    # Minato, Shin-ichi - Fast Generation of Prime-Irredundant Covers from Binary Decision Diagrams.
+    # https://eprints.lib.hokudai.ac.jp/dspace/bitstream/2115/47468/3/59_IEICE76_967.pdf
+    # Also known as the Minato-Morreale ISOP algorithm
     def isop(self, L, U, i):
 
         if L.is_contradiction():
